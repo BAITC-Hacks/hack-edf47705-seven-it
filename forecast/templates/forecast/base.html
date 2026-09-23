@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Foresell{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f6f3;
+      --surface: #ffffff;
+      --surface-2: #f0efeb;
+      --border: #e3e2dc;
+      --text: #0b0b0b;
+      --text-2: #52514e;
+      --text-3: #7a7974;
+      --accent: #2a78d6;
+      --accent-ink: #ffffff;
+      --accent-soft: #e6f0fb;
+      --good: #0b7a3b;
+      --good-soft: #e3f4e9;
+      --bad: #c23b3a;
+      --bad-soft: #fbe7e6;
+      --warn: #9a6400;
+      --warn-soft: #fdf1d8;
+      --series-1: #2a78d6;
+      --grid: #e8e7e2;
+      --radius: 12px;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 16px rgba(0, 0, 0, .04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #121211;
+        --surface: #1a1a19;
+        --surface-2: #232321;
+        --border: #2f2f2c;
+        --text: #ffffff;
+        --text-2: #c3c2b7;
+        --text-3: #8d8c85;
+        --accent: #3987e5;
+        --accent-ink: #ffffff;
+        --accent-soft: #1b2a3d;
+        --good: #4cc27a;
+        --good-soft: #16291d;
+        --bad: #ef7b7a;
+        --bad-soft: #331b1b;
+        --warn: #e0a93a;
+        --warn-soft: #2f2615;
+        --series-1: #3987e5;
+        --grid: #2a2a28;
+        --shadow: none;
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --border: #2f2f2c;
+      --text: #ffffff; --text-2: #c3c2b7; --text-3: #8d8c85;
+      --accent: #3987e5; --accent-ink: #ffffff; --accent-soft: #1b2a3d;
+      --good: #4cc27a; --good-soft: #16291d; --bad: #ef7b7a; --bad-soft: #331b1b;
+      --warn: #e0a93a; --warn-soft: #2f2615; --series-1: #3987e5; --grid: #2a2a28; --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+    header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+    header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--text); text-decoration: none; letter-spacing: -.01em; }
+    .logo svg { color: var(--accent); }
+    .top-note { color: var(--text-3); font-size: 13px; }
+    main { padding: 32px 0 64px; }
+    h1, h2, h3 { letter-spacing: -.02em; line-height: 1.2; margin: 0; }
+    h1 { font-size: clamp(28px, 4.5vw, 44px); font-weight: 700; }
+    h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; font-weight: 600; }
+    .muted { color: var(--text-2); }
+    .small { font-size: 13px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 18px; border-radius: 10px; border: 1px solid transparent;
+      font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { filter: brightness(1.07); }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--surface-2); }
+    .btn[disabled] { opacity: .65; cursor: progress; }
+    .messages { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 8px; }
+    .messages li { padding: 10px 14px; border-radius: 10px; font-size: 14px; }
+    .messages .success { background: var(--good-soft); color: var(--good); }
+    .messages .warning, .messages .error { background: var(--warn-soft); color: var(--warn); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .badge-good { background: var(--good-soft); color: var(--good); }
+    .badge-bad { background: var(--bad-soft); color: var(--bad); }
+    .badge-neutral { background: var(--surface-2); color: var(--text-2); }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); }
+    .badge-warn { background: var(--warn-soft); color: var(--warn); }
+    label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 6px; }
+    input[type=text], input[type=number], select, input[type=file] {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); font: inherit;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .field { margin-bottom: 14px; }
+    .field .help { color: var(--text-3); font-size: 12px; margin-top: 4px; }
+    .field .errorlist { list-style: none; padding: 0; margin: 6px 0 0; color: var(--bad); font-size: 13px; }
+    @media (max-width: 600px) { .top-note { display: none; } }
+    footer { color: var(--text-3); font-size: 13px; padding: 24px 0 40px; border-top: 1px solid var(--border); }
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="logo" href="{% url 'index' %}">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="24" height="24" rx="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M6 17l4.5-5 3.5 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16.5 8H20v3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Foresell
+      </a>
+      <span class="top-note">Know what sells before it sells</span>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+  <footer>
+    <div class="wrap">Foresell · прогноз спроса по вашим собственным данным · команда Seven IT</div>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

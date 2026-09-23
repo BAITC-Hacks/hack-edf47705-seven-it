@@ -1,0 +1,85 @@
+{% extends 'forecast/base.html' %}
+
+{% block title %}Foresell — прогноз спроса для бизнеса{% endblock %}
+
+{% block extra_style %}
+  .hero { padding: 16px 0 36px; max-width: 760px; }
+  .hero p { font-size: 18px; color: var(--text-2); margin: 16px 0 0; }
+  .questions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 36px; }
+  .question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; font-weight: 500; }
+  .question span { display: block; color: var(--text-3); font-size: 13px; font-weight: 400; margin-top: 4px; }
+  .start { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .start { grid-template-columns: 1fr; } }
+  .demo-card { background: var(--accent-soft); border-color: transparent; }
+  .demo-card p { margin: 8px 0 18px; color: var(--text-2); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .grid-2 .field:last-child { grid-column: 1 / -1; }
+  @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
+  .steps li { counter-increment: step; display: flex; gap: 10px; color: var(--text-2); font-size: 14px; }
+  .steps li::before { content: counter(step); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); color: var(--accent); font-weight: 700; font-size: 12px; display: grid; place-items: center; }
+  .recent { margin-top: 40px; }
+  .recent ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .recent a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; }
+  .recent a:hover { border-color: var(--accent); }
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Знайте, что будет продаваться, раньше, чем начнут покупать</h1>
+  <p>Foresell анализирует историю ваших продаж или записей и показывает, на что растёт и падает спрос, и к какой дате готовиться к сезонному пику.</p>
+</section>
+
+<section class="questions" aria-label="На какие вопросы отвечает Foresell">
+  <div class="question">Что заказать, а закупку чего сократить?<span>Тренд по каждой категории</span></div>
+  <div class="question">Когда ждать рост записей и готовить смены?<span>Сезонные пики по месяцам</span></div>
+  <div class="question">Сохранится ли спрос к моменту поставки?<span>Прогноз на 3 месяца и срок заказа</span></div>
+</section>
+
+<section class="start">
+  <div class="card demo-card">
+    <h2>Посмотреть на примере</h2>
+    <p>Магазин автозапчастей в Алматы: продажи по 8 категориям за 2024–2026 годы.</p>
+    <form method="post" action="{% url 'demo' %}">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">Открыть демо</button>
+    </form>
+    <ol class="steps">
+      <li>Загружаете выгрузку продаж или записей</li>
+      <li>Система считает тренд, сезонность и прогноз</li>
+      <li>ИИ переводит цифры в конкретные решения со сроками</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Загрузить свои данные</h2>
+    <p class="muted small">CSV с колонками <b>дата, категория, количество</b>. Лучше всего — за 12–24 месяца. <a href="{% url 'sample_csv' %}">Скачать пример файла</a></p>
+    <form method="post" action="{% url 'upload' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="field"><ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+      <div class="grid-2">
+        {% for field in form %}
+          <div class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+      </div>
+      <button class="btn btn-primary" type="submit">Построить прогноз</button>
+    </form>
+  </div>
+</section>
+
+{% if datasets %}
+<section class="recent">
+  <h2>Недавние анализы</h2>
+  <ul>
+    {% for d in datasets %}
+      <li><a href="{% url 'dashboard' d.id %}"><span><b>{{ d.business.name }}</b> · {{ d.business.region }}</span><span class="muted small">{{ d.name }} · {{ d.created_at|date:"d.m.Y H:i" }}</span></a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends 'forecast/base.html' %}
+
+{% block title %}{{ business.name }} — Foresell{% endblock %}
+
+{% block extra_style %}
+  .head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .head h1 { font-size: clamp(24px, 3.5vw, 34px); }
+  .head .meta { color: var(--text-2); margin-top: 6px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .tile .label { color: var(--text-2); font-size: 13px; }
+  .tile .value { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; }
+  .tile .sub { color: var(--text-3); font-size: 13px; }
+  .section { margin-bottom: 24px; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .summary { font-size: 16px; margin: 0 0 16px; }
+  .note { font-size: 13px; color: var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 8px; margin: 0 0 14px; }
+  .recs { display: grid; gap: 10px; }
+  .rec { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  .rec .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
+  .rec .icon.up { background: var(--good-soft); color: var(--good); }
+  .rec .icon.down { background: var(--bad-soft); color: var(--bad); }
+  .rec .icon.clock, .rec .icon.pause { background: var(--accent-soft); color: var(--accent); }
+  .rec h3 { margin-bottom: 4px; }
+  .rec p { margin: 0; color: var(--text-2); font-size: 14px; }
+  .rec .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .layout { display: grid; gap: 20px; }
+  .layout > * { min-width: 0; }
+  .table-wrap { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 500; color: var(--text-3); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; padding: 0 10px 8px; white-space: nowrap; }
+  td { padding: 10px; border-top: 1px solid var(--border); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--surface-2); }
+  tbody tr.selected td { background: var(--accent-soft); }
+  tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .overdue { color: var(--bad); font-weight: 600; }
+  .chart-box { position: relative; height: 300px; margin-top: 12px; }
+  .chart-key { display: flex; gap: 16px; color: var(--text-2); font-size: 13px; margin-top: 10px; flex-wrap: wrap; }
+  .chart-key i { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--series-1); vertical-align: middle; margin-right: 6px; }
+  .chart-key i.dashed { border-top-style: dashed; }
+  .chart-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 16px; }
+  .chart-facts div { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .chart-facts span { display: block; color: var(--text-3); font-size: 12px; }
+  .chart-facts b { font-size: 16px; }
+  .disclaimer { color: var(--text-3); font-size: 13px; margin-top: 12px; }
+{% endblock %}
+
+{% block content %}
+<div class="head">
+  <div>
+    <h1>{{ business.name }}</h1>
+    <div class="meta">{{ business.region }} · {{ business.get_business_type_display }} · данные до {{ report.as_of|date:"d.m.Y" }} · срок подготовки {{ business.lead_time_weeks }} нед.</div>
+  </div>
+  <a class="btn btn-secondary" href="{% url 'index' %}">Новый анализ</a>
+</div>
+
+<div class="tiles">
+  <div class="card tile">
+    <div class="label">Спрос растёт</div>
+    <div class="value">{{ report.growing|length }}</div>
+    <div class="sub">из {{ report.insights|length }} категорий</div>
+  </div>
+  <div class="card tile">
+    <div class="label">Спрос падает</div>
+    <div class="value">{{ report.falling|length }}</div>
+    <div class="sub">из {{ report.insights|length }} категорий</div>
+  </div>
+  <div class="card tile">
+    <div class="label">Ближайший срок подготовки</div>
+    {% if next_deadline %}
+      <div class="value">{{ next_deadline_label }}</div>
+      <div class="sub">{{ next_deadline.category }}</div>
+    {% else %}
+      <div class="value">—</div>
+      <div class="sub">сезонных пиков впереди не видно</div>
+    {% endif %}
+  </div>
+</div>
+
+<section class="card section">
+  <div class="section-head">
+    <div>
+      <h2>Что делать</h2>
+      <div class="small muted" style="margin-top:4px">
+        {% if dataset.recommendations_source == 'ai' %}
+          <span class="badge badge-accent">ИИ · Claude</span> сформулировано по цифрам ниже, проверьте перед решением
+        {% else %}
+          <span class="badge badge-neutral">По правилам</span> рассчитано по формулам без ИИ
+        {% endif %}
+      </div>
+    </div>
+    <form method="post" action="{% url 'recommend' dataset.id %}" id="ai-form">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit" id="ai-button">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7 4.3 13.1l1.1-4.3L2 6l4.4-.3L8 1.5z" fill="currentColor"/></svg>
+        {% if dataset.recommendations_source == 'ai' %}Обновить рекомендации ИИ{% else %}Получить рекомендации ИИ{% endif %}
+      </button>
+    </form>
+  </div>
+  {% if dataset.recommendations_note %}<p class="note">{{ dataset.recommendations_note }}</p>{% endif %}
+  {% if summary %}<p class="summary">{{ summary }}</p>{% endif %}
+  {% if items %}
+    <div class="recs">
+      {% for item in items %}
+        <article class="rec">
+          <div class="icon {{ item.icon }}" aria-hidden="true">
+            {% if item.icon == 'up' %}<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 16V4M4.5 9.5L10 4l5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {% elif item.icon == 'down' %}<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4.5 10.5L10 16l5.5-5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {% else %}<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2"/><path d="M10 6v4.2l2.8 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{% endif %}
+          </div>
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.reason }}</p>
+            <div class="tags">
+              <span class="badge {% if item.icon == 'up' %}badge-good{% elif item.icon == 'down' %}badge-bad{% else %}badge-accent{% endif %}">{{ item.action_label }}</span>
+              {% if item.deadline_label %}<span class="badge badge-warn">до {{ item.deadline_label }}</span>{% endif %}
+              <span class="badge badge-neutral">уверенность: {{ item.confidence_label }}</span>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">Заметных изменений спроса и сезонных пиков в ближайшие месяцы нет — можно держать текущий уровень.</p>
+  {% endif %}
+</section>
+
+<div class="layout">
+  <section class="card chart-card" aria-live="polite">
+    <h2 id="chart-title">—</h2>
+    <div class="chart-key"><span><i></i>Факт по месяцам, {{ unit }}</span><span><i class="dashed"></i>Прогноз</span></div>
+    <div class="chart-box"><canvas id="chart" role="img" aria-label="График спроса по месяцам с прогнозом"></canvas></div>
+    <div class="chart-facts" id="chart-facts"></div>
+    <p class="disclaimer">Прогноз строится только по вашим данным: тренд за последний год и повторяющаяся сезонность. Он не учитывает внешние события, поэтому проверяйте его перед крупными решениями.</p>
+  </section>
+  <section class="card">
+    <h2>Категории</h2>
+    <p class="small muted" style="margin:4px 0 14px">Нажмите на строку, чтобы показать её на графике выше. Изменение — прогноз на 3 месяца против тех же месяцев прошлого года.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Категория</th>
+            <th>Тренд</th>
+            <th class="num">Прогноз, 3 мес.</th>
+            <th class="num">К прошлому году</th>
+            <th>Пик</th>
+            <th>Готовиться до</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr data-category="{{ row.insight.category }}" tabindex="0">
+              <td><b>{{ row.insight.category }}</b></td>
+              <td>
+                <span class="badge {% if row.insight.direction == 'growing' %}badge-good{% elif row.insight.direction == 'falling' %}badge-bad{% else %}badge-neutral{% endif %}">
+                  {% if row.insight.direction == 'growing' %}↑{% elif row.insight.direction == 'falling' %}↓{% else %}→{% endif %}
+                  {{ row.direction_label }}{% if row.insight.trend_pct is not None %} {{ row.insight.trend_pct|floatformat:0 }}%{% endif %}
+                </span>
+              </td>
+              <td class="num">{{ row.insight.forecast_total|floatformat:0 }}</td>
+              <td class="num">{% if row.insight.forecast_vs_last_year_pct is not None %}{{ row.insight.forecast_vs_last_year_pct|floatformat:0 }}%{% else %}—{% endif %}</td>
+              <td>{{ row.peak_label|default:"—" }}</td>
+              <td>{% if row.order_by_label %}<span {% if row.order_by_overdue %}class="overdue" title="Срок уже прошёл"{% endif %}>{{ row.order_by_label }}</span>{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('chart-data').textContent);
+  const rows = Array.from(document.querySelectorAll('tbody tr[data-category]'));
+  const facts = {};
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll('td');
+    facts[row.dataset.category] = {
+      trend: cells[1].textContent.trim().replace(/\s+/g, ' '),
+      forecast: cells[2].textContent.trim(),
+      yoy: cells[3].textContent.trim(),
+      peak: cells[4].textContent.trim(),
+      orderBy: cells[5].textContent.trim(),
+    };
+  });
+
+  const monthNames = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const label = (ym) => { const [y, m] = ym.split('-'); return monthNames[+m - 1] + ' ' + y.slice(2); };
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+  let chart = null;
+
+  function render(category) {
+    const series = data[category];
+    if (!series || typeof Chart === 'undefined') return;
+    rows.forEach((r) => r.classList.toggle('selected', r.dataset.category === category));
+    document.getElementById('chart-title').textContent = category;
+
+    const history = series.history, forecast = series.forecast;
+    const labels = history.map((p) => label(p[0])).concat(forecast.map((p) => label(p[0])));
+    const fact = history.map((p) => p[1]).concat(forecast.map(() => null));
+    // The forecast line starts at the last actual point so the two lines join.
+    const predicted = history.map((p, i) => (i === history.length - 1 ? p[1] : null)).concat(forecast.map((p) => p[1]));
+    const color = css('--series-1'), grid = css('--grid'), text = css('--text-2');
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('chart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Факт', data: fact, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.25, spanGaps: false },
+          { label: 'Прогноз', data: predicted, borderColor: color, backgroundColor: color, borderWidth: 2, borderDash: [6, 5], pointRadius: 0, pointHoverRadius: 5, tension: 0.25, spanGaps: false },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: (item) => item.raw !== null && !(item.datasetIndex === 1 && item.dataIndex === history.length - 1),
+            callbacks: { label: (item) => ' ' + item.dataset.label + ': ' + fmt.format(item.raw) },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: text, maxRotation: 0, autoSkipPadding: 12 } },
+          y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: text, callback: (v) => fmt.format(v) } },
+        },
+      },
+    });
+
+    const f = facts[category];
+    document.getElementById('chart-facts').innerHTML = '';
+    [['Тренд', f.trend], ['Прогноз, 3 мес.', f.forecast], ['К прошлому году', f.yoy], ['Готовиться до', f.orderBy]].forEach(([k, v]) => {
+      const div = document.createElement('div');
+      const span = document.createElement('span');
+      const b = document.createElement('b');
+      span.textContent = k; b.textContent = v;
+      div.append(span, b);
+      document.getElementById('chart-facts').append(div);
+    });
+  }
+
+  rows.forEach((row) => {
+    row.addEventListener('click', () => render(row.dataset.category));
+    row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); render(row.dataset.category); } });
+  });
+  if (rows.length) render(rows[0].dataset.category);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const selected = document.querySelector('tbody tr.selected');
+    if (selected) render(selected.dataset.category);
+  });
+
+  const form = document.getElementById('ai-form');
+  form.addEventListener('submit', () => {
+    const button = document.getElementById('ai-button');
+    button.disabled = true;
+    button.textContent = 'Claude анализирует данные… до минуты';
+  });
+})();
+</script>
+{% endblock %}
