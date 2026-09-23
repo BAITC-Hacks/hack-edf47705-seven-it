@@ -1,0 +1,21 @@
+<div class="permission-picker" data-permission-picker>
+  <div class="permission-toolbar" hidden>
+    <label for="{{ widget.attrs.id }}_search">Поиск раздела или действия
+      <input type="search" id="{{ widget.attrs.id }}_search" placeholder="Например, бизнес или просмотр" data-permission-search autocomplete="off">
+    </label>
+    <span class="permission-count" aria-live="polite" data-permission-count></span>
+  </div>
+  <div class="permission-grid">
+    {% for group, options, index in widget.optgroups %}
+      <fieldset class="permission-card" data-permission-card>
+        <legend>{{ group }}</legend>
+        <div class="permission-options">
+          {% for option in options %}
+            <div class="permission-option">{% include option.template_name with widget=option %}</div>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% empty %}<p>Нет доступных прав.</p>{% endfor %}
+  </div>
+  <p class="permission-empty" data-permission-empty hidden>Ничего не найдено. Попробуйте другое название.</p>
+</div>

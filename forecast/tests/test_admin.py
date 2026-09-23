@@ -37,6 +37,80 @@ class AdminTests(TestCase):
         self.assertEqual(self.client.get(reverse('admin:index')).status_code, 200)
         self.assertEqual(self.client.get(reverse('admin:forecast_business_changelist')).status_code, 403)
 
+    def test_permission_cards_save_and_validate_group_permissions(self):
+        self.client.force_login(self.root)
+        group = Group.objects.create(name='Аналитики')
+        permission = Permission.objects.get(codename='view_dataset')
+        url = reverse('admin:auth_group_change', args=[group.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'data-permission-picker')
+        self.assertContains(response, 'forecast/admin_permissions.js')
+        self.assertContains(response, 'Просмотр')
+        self.assertEqual(self.client.post(url, {'name': group.name, 'permissions': [permission.pk]}).status_code, 302)
+        self.assertEqual(list(group.permissions.all()), [permission])
+        self.staff.groups.add(group)
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse('admin:forecast_dataset_changelist')).status_code, 200)
+        self.assertEqual(self.client.post(self.change_url('dataset', self.dataset), {'name': 'Wrong'}).status_code, 403)
+        self.client.force_login(self.root)
+        response = self.client.post(url, {'name': group.name, 'permissions': ['99999999']})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('permissions', response.context['adminform'].form.errors)
+        self.assertEqual(list(group.permissions.all()), [permission])
+        self.assertEqual(self.client.post(url, {'name': group.name}).status_code, 302)
+        self.assertFalse(group.permissions.exists())
+
+    def test_user_permission_cards_preserve_selected_permissions(self):
+        from forecast.admin_forms import AdminUserForm
+
+        permission = Permission.objects.get(codename='view_business')
+        self.staff.user_permissions.add(permission)
+        self.client.force_login(self.root)
+        response = self.client.get(reverse('admin:auth_user_change', args=[self.staff.pk]))
+        self.assertContains(response, 'data-permission-picker')
+        self.assertContains(response, 'Индивидуальные права')
+        form = AdminUserForm(instance=self.staff)
+        groups = form.fields['user_permissions'].widget.optgroups('user_permissions', [str(permission.pk)])
+        selected = [option for _, options, _ in groups for option in options if option['selected']]
+        self.assertEqual([str(option['value']) for option in selected], [str(permission.pk)])
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse('admin:auth_user_change', args=[self.staff.pk])).status_code, 403)
+
+    def test_dashboard_respects_model_permissions(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('admin:index'))
+        self.assertContains(response, 'Разделы пока недоступны')
+        self.grant('view_business')
+        response = self.client.get(reverse('admin:index'))
+        self.assertContains(response, reverse('admin:forecast_business_changelist'))
+        self.assertNotContains(response, reverse('admin:auth_user_changelist'))
+        self.assertNotContains(response, reverse('admin:forecast_business_add'))
+
+    def test_workspace_statistics_obey_permissions_and_count_real_records(self):
+        from forecast.templatetags.admin_workspace import workspace_summary
+        from django.test import RequestFactory
+
+        request = RequestFactory().get('/admin/')
+        request.user = self.staff
+        self.assertEqual(workspace_summary({'request': request})['metrics'], [])
+        self.grant('view_dataset')
+        request.user = User.objects.get(pk=self.staff.pk)
+        summary = workspace_summary({'request': request})
+        self.assertEqual(len(summary['metrics']), 1)
+        self.assertEqual(summary['metrics'][0]['count'], 1)
+        self.assertEqual(sum(day['count'] for day in summary['chart']), 1)
+        self.assertEqual([dataset.pk for dataset in summary['datasets']], [self.dataset.pk])
+        request.user = self.root
+        self.assertEqual([metric['count'] for metric in workspace_summary({'request': request})['metrics']], [1, 1, 12, 4])
+
+    def test_pro_admin_assets_are_scoped_to_admin(self):
+        self.client.force_login(self.root)
+        response = self.client.get(reverse('admin:index'))
+        self.assertContains(response, 'forecast/admin_pro.css?v=')
+        self.assertContains(response, 'id="pro-sidebar"')
+        self.assertContains(response, 'Обзор системы')
+        self.assertNotContains(self.client.get(reverse('index')), 'forecast/admin_pro.css')
+
     def test_view_permission_cannot_change_or_recalculate(self):
         self.grant('view_dataset')
         url = self.change_url('dataset', self.dataset)
