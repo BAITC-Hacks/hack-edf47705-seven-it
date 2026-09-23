@@ -1,0 +1,4 @@
+{% extends 'forecast/base.html' %}
+{% block title %}{{ title }} — Foresell{% endblock %}
+{% block breadcrumb %}Личный кабинет{% endblock %}
+{% block content %}<section class="card account-form"><a href="{% url 'market:catalog' %}" class="text-link">← Каталог</a><h1>{{ title }}</h1>{% if description %}<p class="section-description">{{ description }}</p>{% endif %}<form method="post" enctype="multipart/form-data">{% csrf_token %}{% include 'market/includes/fields.html' %}<button class="btn btn-primary" type="submit">{{ submit_label }}</button></form>{% if request.resolver_match.url_name == 'register' %}<p class="section-description">Уже есть аккаунт? <a href="{% url 'market:login' %}">Войти</a></p>{% endif %}</section>{% endblock %}

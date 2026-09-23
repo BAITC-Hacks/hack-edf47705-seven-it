@@ -2,6 +2,7 @@
 {% load static %}
 {% block title %}Foresell — прогноз спроса для бизнеса{% endblock %}
 {% block content %}
+<section class="market-shortcuts" aria-label="Возможности Foresell"><a class="card" href="{% url 'market:catalog' %}"><strong>Каталог, спрос и отзывы →</strong><span>Посмотрите товары, историю цен и мнения покупателей.</span></a><a class="card" href="{% url 'market:ledger' %}"><strong>Мои финансы →</strong><span>Доходы, расходы и денежный итог в одном месте.</span></a><a class="card" href="{% url 'market:support' %}"><strong>Помощник и справочник →</strong><span>Ответы на вопросы о товарах и работе Foresell.</span></a></section>
 <section class="hero">
   <div class="hero-copy">
     <span class="eyebrow">ПОНЯТНЫЙ ПРОГНОЗ ПРОДАЖ</span>
@@ -11,7 +12,7 @@
       <a class="btn btn-primary" href="#upload">Загрузить продажи<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
       <form method="post" action="{% url 'demo' %}" data-loading-form>{% csrf_token %}<button class="btn btn-secondary" type="submit" data-loading-text="Открываем демо…">Открыть демо</button></form>
     </div>
-    <div class="hero-footnote"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Без регистрации · CSV из Excel или вашей кассы</div>
+    <div class="hero-footnote"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Excel или CSV · демо доступно без регистрации</div>
   </div>
   <div class="preview" aria-label="Иллюстрация прогноза спроса, пример без реальных данных">
     <div class="preview-heading"><span class="preview-icon"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span><div><strong>Загляните в следующий сезон</strong><span>Так выглядит прогноз спроса</span></div><span class="badge badge-neutral">Пример</span></div>
@@ -30,7 +31,7 @@
   </div>
 </section>
 <section class="benefits" id="how-it-works" aria-label="Как работает Foresell">
-  <div class="benefit"><span class="step-number">01</span><div><h2>Загрузите продажи</h2><p>Один CSV-файл с вашей историей</p></div></div>
+  <div class="benefit"><span class="step-number">01</span><div><h2>Загрузите продажи</h2><p>Один файл Excel или CSV с вашей историей</p></div></div>
   <div class="benefit"><span class="step-number">02</span><div><h2>Посмотрите прогноз</h2><p>Что будут покупать в ближайшие месяцы</p></div></div>
   <div class="benefit"><span class="step-number">03</span><div><h2>Спланируйте следующий шаг</h2><p>Что заказать и к какой дате</p></div></div>
 </section>
@@ -55,13 +56,13 @@
       <div class="file-field {% if form.file.errors %}has-error{% endif %}">
         <label class="file-picker" for="{{ form.file.id_for_label }}">
           <span class="icon-tile"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
-          <span class="file-copy"><strong id="file-name" aria-live="polite">Выберите CSV-файл</strong><span>Нажмите, чтобы загрузить · до 5 МБ</span></span>
-          <span class="file-extension" aria-hidden="true">CSV</span>{{ form.file }}
+          <span class="file-copy"><strong id="file-name" aria-live="polite">Выберите Excel или CSV</strong><span>Формат .xlsx или .csv · до 5 МБ</span></span>
+          <span class="file-extension" aria-hidden="true">XLSX / CSV</span>{{ form.file }}
         </label>
         <div class="file-help" id="{{ form.file.auto_id }}_helptext">Нужны три колонки: дата, категория, количество. Лучше — за 12–24 месяца.</div>
         {{ form.file.errors }}
       </div>
-      <details class="file-instructions"><summary>Как подготовить файл?</summary><p>В Excel создайте три колонки: «дата», «категория», «количество». Например: 2026-08-31, Кофе, 25. Затем выберите «Сохранить как» → «CSV UTF-8».</p><p>Если своего файла пока нет, откройте демо — там уже всё подготовлено.</p><a href="{% url 'sample_csv' %}">Скачать готовый пример</a></details>
+      <details class="file-instructions"><summary>Как подготовить файл?</summary><p>На первом листе Excel создайте три колонки: «дата», «категория», «количество». Например: 2026-08-31, Кофе, 25. Сохраните как .xlsx или CSV UTF-8. Формулы замените готовыми значениями.</p><p>Если своего файла пока нет, откройте демо — там уже всё подготовлено.</p><a href="{% url 'sample_csv' %}">Скачать готовый пример</a></details>
       <div class="upload-actions"><a class="text-link" href="{% url 'sample_csv' %}">Скачать пример CSV <span aria-hidden="true">↗</span></a><button class="btn btn-primary" type="submit" data-loading-text="Строим прогноз…">Построить прогноз<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
     </form>
   </div>

@@ -2,6 +2,7 @@ from datetime import date
 
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -22,11 +23,21 @@ ACTION_LABELS = {
 }
 
 
+def accessible_datasets(request):
+    query = Dataset.objects.select_related('business')
+    if request.user.is_authenticated and request.user.is_staff:
+        return query
+    permitted = Q(is_demo=True) | Q(pk__in=request.session.get('forecast_datasets', []), business__owner__isnull=True)
+    if request.user.is_authenticated:
+        permitted |= Q(business__owner=request.user)
+    return query.filter(permitted)
+
+
 def index(request):
     form = UploadForm()
     return render(request, 'forecast/index.html', {
         'form': form,
-        'datasets': Dataset.objects.select_related('business')[:8],
+        'datasets': accessible_datasets(request)[:8],
     })
 
 
@@ -36,13 +47,17 @@ def upload(request):
     if not form.is_valid():
         return render(request, 'forecast/index.html', {
             'form': form,
-            'datasets': Dataset.objects.select_related('business')[:8],
+            'datasets': accessible_datasets(request)[:8],
         }, status=400)
 
     parsed = form.parsed
     with transaction.atomic():
-        business = form.save()
+        business = form.save(commit=False)
+        if request.user.is_authenticated:
+            business.owner = request.user
+        business.save()
         dataset = services.create_dataset(business, request.FILES['file'].name, parsed.rows)
+    request.session['forecast_datasets'] = (request.session.get('forecast_datasets', []) + [dataset.pk])[-50:]
     if parsed.skipped_count:
         messages.warning(
             request,
@@ -56,6 +71,8 @@ def demo(request):
     with transaction.atomic():
         business = Business.objects.create(**DEMO_BUSINESS)
         dataset = services.create_dataset(business, 'Демо: продажи 2024–2026', demo_rows())
+        dataset.is_demo = True
+        dataset.save(update_fields=['is_demo'])
     return redirect('dashboard', dataset_id=dataset.id)
 
 
@@ -66,7 +83,7 @@ def sample_csv(request):
 
 
 def dashboard(request, dataset_id):
-    dataset = get_object_or_404(Dataset.objects.select_related('business'), pk=dataset_id)
+    dataset = get_object_or_404(accessible_datasets(request), pk=dataset_id)
     report = services.load_report(dataset)
 
     rows = []
@@ -119,7 +136,7 @@ def dashboard(request, dataset_id):
 
 @require_POST
 def recommend(request, dataset_id):
-    dataset = get_object_or_404(Dataset, pk=dataset_id)
+    dataset = get_object_or_404(accessible_datasets(request), pk=dataset_id)
     services.refresh_recommendations(dataset, use_ai=True)
     if dataset.recommendations_source == Dataset.SOURCE_AI:
         messages.success(request, 'Рекомендации ИИ готовы.')

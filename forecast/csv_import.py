@@ -2,6 +2,7 @@
 
 import csv
 import io
+import math
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -54,6 +55,8 @@ def _parse_quantity(value: str) -> float:
         quantity = float(cleaned)
     except ValueError:
         raise ValueError(f'не число «{value}»') from None
+    if not math.isfinite(quantity):
+        raise ValueError('количество должно быть конечным числом')
     if quantity < 0:
         raise ValueError('отрицательное количество')
     return quantity
@@ -101,6 +104,8 @@ def parse_csv(data: bytes) -> ParseResult:
             category = row[columns['category']].strip()
             if not category:
                 raise ValueError('пустая категория')
+            if len(category) > 120:
+                raise ValueError('категория длиннее 120 символов')
             result.rows.append((
                 _parse_date(row[columns['date']]),
                 category,

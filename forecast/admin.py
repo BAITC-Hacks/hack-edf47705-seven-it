@@ -89,6 +89,10 @@ class BusinessAdmin(NoDeleteAdmin):
     readonly_fields = ('created_at', 'datasets_link')
     date_hierarchy = 'created_at'
 
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        return fields if request.user.is_superuser else (*fields, 'owner')
+
     @admin.display(description='Наборы данных')
     def datasets_link(self, obj):
         return related_list('dataset', 'business__id__exact', obj.pk, 'Открыть наборы данных') if obj.pk else '—'

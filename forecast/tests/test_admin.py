@@ -87,6 +87,17 @@ class AdminTests(TestCase):
         self.assertEqual(self.dataset.recommendations, rule_recommendations(load_report(self.dataset), self.business))
         self.assertEqual(LogEntry.objects.filter(user=self.staff).count(), 2)
 
+    def test_staff_cannot_reassign_private_business_owner(self):
+        self.business.owner = self.regular
+        self.business.save(update_fields=['owner'])
+        self.grant('change_business')
+        self.client.post(self.change_url('business', self.business), {
+            'name': 'Кофейня', 'region': 'Алматы', 'business_type': 'retail',
+            'lead_time_weeks': 3, 'owner': self.staff.pk,
+        })
+        self.business.refresh_from_db()
+        self.assertEqual(self.business.owner, self.regular)
+
     def test_validation(self):
         self.grant('change_business')
         response = self.client.post(self.change_url('business', self.business), {

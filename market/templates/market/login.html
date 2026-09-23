@@ -1,0 +1,4 @@
+{% extends 'forecast/base.html' %}
+{% block title %}Вход — Foresell{% endblock %}
+{% block breadcrumb %}Вход{% endblock %}
+{% block content %}<section class="card account-form"><span class="eyebrow">ВАШ ЛИЧНЫЙ КАБИНЕТ</span><h1>С возвращением</h1><p class="section-description">Войдите, чтобы сохранять товары, писать отзывы и вести учёт денег.</p><form method="post">{% csrf_token %}{% include 'market/includes/fields.html' %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button class="btn btn-primary" type="submit">Войти</button></form><p class="section-description">Первый раз здесь? <a href="{% url 'market:register' %}">Создать аккаунт</a></p></section>{% endblock %}

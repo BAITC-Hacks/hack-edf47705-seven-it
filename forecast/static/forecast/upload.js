@@ -3,7 +3,7 @@
   if (input) {
     input.addEventListener('change', () => {
       const file = input.files[0];
-      document.getElementById('file-name').textContent = file ? file.name : 'Выберите CSV-файл';
+      document.getElementById('file-name').textContent = file ? file.name : 'Выберите Excel или CSV';
       input.closest('.file-picker').classList.toggle('has-file', Boolean(file));
     });
   }

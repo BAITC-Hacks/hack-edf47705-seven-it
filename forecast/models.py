@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Business(models.Model):
@@ -12,6 +13,7 @@ class Business(models.Model):
     ]
 
     name = models.CharField('Название', max_length=200)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name='businesses', verbose_name='Владелец')
     business_type = models.CharField('Тип бизнеса', max_length=20, choices=TYPE_CHOICES, default=TYPE_RETAIL)
     region = models.CharField('Регион', max_length=100)
     lead_time_weeks = models.PositiveSmallIntegerField(
@@ -38,6 +40,7 @@ class Dataset(models.Model):
 
     business = models.ForeignKey(Business, verbose_name='Бизнес-профиль', on_delete=models.CASCADE, related_name='datasets')
     name = models.CharField('Название', max_length=200)
+    is_demo = models.BooleanField('Открытый демонстрационный набор', default=False)
     created_at = models.DateTimeField('Дата загрузки', auto_now_add=True)
     recommendations = models.JSONField('Рекомендации', default=dict, blank=True)
     recommendations_source = models.CharField('Источник рекомендаций', max_length=10, choices=SOURCE_CHOICES, blank=True)

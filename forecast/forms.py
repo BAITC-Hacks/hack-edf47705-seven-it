@@ -8,9 +8,9 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 
 class UploadForm(forms.ModelForm):
     file = forms.FileField(
-        label='Файл CSV',
+        label='Файл Excel или CSV',
         help_text='Колонки: дата, категория, количество. Подойдёт выгрузка из кассы, 1С или Excel.',
-        widget=forms.FileInput(attrs={'accept': '.csv,text/csv'}),
+        widget=forms.FileInput(attrs={'accept': '.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
     )
 
     class Meta:
@@ -42,7 +42,13 @@ class UploadForm(forms.ModelForm):
         if upload.size > MAX_FILE_SIZE:
             raise forms.ValidationError('Файл больше 5 МБ.')
         try:
-            self.parsed = parse_csv(upload.read())
+            if upload.name.lower().endswith('.xlsx'):
+                from market.excel import parse_sales_xlsx
+                self.parsed = parse_sales_xlsx(upload.read())
+            elif upload.name.lower().endswith('.csv'):
+                self.parsed = parse_csv(upload.read())
+            else:
+                raise CsvImportError('Выберите файл .xlsx или .csv.')
         except CsvImportError as error:
             raise forms.ValidationError(str(error)) from None
         return upload
