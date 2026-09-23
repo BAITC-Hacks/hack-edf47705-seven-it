@@ -19,7 +19,11 @@ class Business(models.Model):
         default=3,
         help_text='Сколько недель занимает поставка товара или подготовка смен.',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Бизнес-профиль'
+        verbose_name_plural = 'Бизнес-профили'
 
     def __str__(self):
         return f'{self.name} ({self.region})'
@@ -32,16 +36,18 @@ class Dataset(models.Model):
     SOURCE_RULES = 'rules'
     SOURCE_CHOICES = [(SOURCE_AI, 'ИИ (Claude)'), (SOURCE_RULES, 'Правила')]
 
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='datasets')
-    name = models.CharField(max_length=200)
-    created_at = models.DateTimeField(auto_now_add=True)
-    recommendations = models.JSONField(default=dict, blank=True)
-    recommendations_source = models.CharField(max_length=10, choices=SOURCE_CHOICES, blank=True)
-    recommendations_note = models.CharField(max_length=300, blank=True)
-    recommendations_at = models.DateTimeField(null=True, blank=True)
+    business = models.ForeignKey(Business, verbose_name='Бизнес-профиль', on_delete=models.CASCADE, related_name='datasets')
+    name = models.CharField('Название', max_length=200)
+    created_at = models.DateTimeField('Дата загрузки', auto_now_add=True)
+    recommendations = models.JSONField('Рекомендации', default=dict, blank=True)
+    recommendations_source = models.CharField('Источник рекомендаций', max_length=10, choices=SOURCE_CHOICES, blank=True)
+    recommendations_note = models.CharField('Примечание', max_length=300, blank=True)
+    recommendations_at = models.DateTimeField('Дата расчёта рекомендаций', null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'Набор данных'
+        verbose_name_plural = 'Наборы данных и рекомендации'
 
     def __str__(self):
         return self.name
@@ -50,10 +56,15 @@ class Dataset(models.Model):
 class Record(models.Model):
     """One observation: how many units were sold (or bookings made) in a category on a date."""
 
-    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, related_name='records')
-    date = models.DateField()
-    category = models.CharField(max_length=120)
-    quantity = models.FloatField()
+    dataset = models.ForeignKey(Dataset, verbose_name='Набор данных', on_delete=models.CASCADE, related_name='records')
+    date = models.DateField('Дата')
+    category = models.CharField('Категория', max_length=120)
+    quantity = models.FloatField('Количество')
 
     class Meta:
         indexes = [models.Index(fields=['dataset', 'category', 'date'])]
+        verbose_name = 'Запись продаж или бронирований'
+        verbose_name_plural = 'История продаж и бронирований'
+
+    def __str__(self):
+        return f'{self.category} — {self.date}'

@@ -116,12 +116,12 @@ def ai_recommendations(report, business, client=None):
     except anthropic.RateLimitError as error:
         raise AiUnavailable('Превышен лимит запросов к Claude, попробуйте через минуту.') from error
     except anthropic.APIStatusError as error:
-        logger.exception('Claude API error, request id %s', error.request_id)
+        logger.warning('Claude API request failed (HTTP %s)', error.status_code)
         raise AiUnavailable(f'Ошибка Claude API ({error.status_code}).') from error
     except anthropic.APIConnectionError as error:
         raise AiUnavailable('Нет соединения с Claude API.') from error
     except (anthropic.AnthropicError, ValidationError) as error:
-        logger.exception('Claude request failed')
+        logger.warning('Claude request failed (%s)', type(error).__name__)
         raise AiUnavailable('Не удалось получить ответ Claude.') from error
 
     if response.stop_reason == 'refusal':
