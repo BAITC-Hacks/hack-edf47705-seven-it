@@ -42,9 +42,17 @@ admin.site.unregister(Group)
 class SafeUserAdmin(ProtectedIdentityAdmin, UserAdmin):
     form = AdminUserForm
     filter_horizontal = ('groups',)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'access_status', 'is_active', 'is_staff')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'role_groups', 'access_status', 'is_active', 'is_staff')
+    list_filter = ('groups', 'is_active', 'is_staff', 'is_superuser')
     list_per_page = 50
     search_help_text = 'Поиск по логину, имени, фамилии или email.'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('groups')
+
+    @admin.display(description='Роли / группы')
+    def role_groups(self, obj):
+        return ', '.join(group.name for group in obj.groups.all()) or '—'
 
     @admin.display(description='Уровень доступа', ordering='is_superuser')
     def access_status(self, obj):

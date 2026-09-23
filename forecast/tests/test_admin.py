@@ -2,7 +2,8 @@ from datetime import date
 
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Group, Permission, User
-from django.test import TestCase
+from django.conf import settings
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from forecast.models import Business, Dataset, Record
@@ -10,7 +11,14 @@ from forecast.services import create_dataset, load_report
 from forecast.recommendations import rule_recommendations
 
 
+class AdminClient(Client):
+    def force_login(self, user, backend=None):
+        super().force_login(user, backend=backend)
+        self.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = self.cookies.pop(settings.SESSION_COOKIE_NAME).value
+
+
 class AdminTests(TestCase):
+    client_class = AdminClient
     @classmethod
     def setUpTestData(cls):
         cls.business = Business.objects.create(name='Кофейня', region='Алматы')
@@ -222,8 +230,10 @@ class AdminTests(TestCase):
 
     def test_admin_theme_is_shared_with_public_site(self):
         response = self.client.get(reverse('admin:login'))
-        self.assertTemplateUsed(response, 'admin/base_site.html')
-        self.assertContains(response, 'forecast/admin.css')
+        self.assertTemplateUsed(response, 'forecast/accounts/login.html')
+        self.assertTemplateUsed(response, 'forecast/base.html')
+        self.assertContains(response, 'forecast/accounts.css')
+        self.assertNotContains(response, 'forecast/admin_pro.css')
         self.assertContains(response, 'forecast/theme.js')
         self.assertContains(response, 'data-set-theme="dark"')
         self.assertNotContains(response, 'admin/js/theme.js')
@@ -232,13 +242,14 @@ class AdminTests(TestCase):
         self.assertContains(response, 'data-set-theme="light"')
         self.assertContains(response, 'brand-mark')
 
-    def test_site_admin_link_is_only_shown_to_active_staff(self):
+    def test_site_has_separate_admin_entry_without_admin_identity(self):
         admin_url = f'href="{reverse("admin:index")}"'
-        self.assertNotContains(self.client.get(reverse('index')), admin_url)
+        self.assertContains(self.client.get(reverse('index')), admin_url)
         self.client.force_login(self.regular)
-        self.assertNotContains(self.client.get(reverse('index')), admin_url)
+        self.assertContains(self.client.get(reverse('index')), admin_url)
         self.client.force_login(self.staff)
         self.assertContains(self.client.get(reverse('index')), admin_url)
+        self.assertContains(self.client.get(reverse('index')), reverse('login'))
 
     def test_dataset_admin_links_to_report_and_explains_recommendations(self):
         self.grant('view_dataset')

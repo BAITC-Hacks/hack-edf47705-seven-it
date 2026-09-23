@@ -1,4 +1,4 @@
-from django.contrib.auth import views as auth_views
+from forecast.account_views import CustomerLoginView, CustomerLogoutView
 from django.urls import path
 from . import views
 
@@ -6,8 +6,8 @@ app_name = 'market'
 urlpatterns = [
     path('', views.catalog, name='catalog'),
     path('register/', views.register, name='register'),
-    path('login/', auth_views.LoginView.as_view(template_name='market/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('login/', CustomerLoginView.as_view(), name='login'),
+    path('logout/', CustomerLogoutView.as_view(), name='logout'),
     path('products/<int:pk>/', views.product_detail, name='product'),
     path('products/<int:pk>/favorite/', views.favorite, name='favorite'),
     path('products/<int:pk>/edit/', views.product_edit, name='product_edit'),

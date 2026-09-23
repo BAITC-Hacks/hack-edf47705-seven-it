@@ -1,0 +1,11 @@
+{% extends 'forecast/accounts/login.html' %}
+{% block title %}Вход администратора — Foresell{% endblock %}
+{% block breadcrumb %}Вход администратора{% endblock %}
+{% block login_eyebrow %}УПРАВЛЕНИЕ FORESELL{% endblock %}
+{% block login_description %}Войдите с логином и паролем администратора, чтобы управлять платформой.{% endblock %}
+{% block login_roles %}<span>Администратор</span>{% endblock %}
+{% block login_heading %}Вход администратора{% endblock %}
+{% block login_action %}{% url 'admin:login' %}{% endblock %}
+{% block login_extra_fields %}<input type="hidden" name="next" value="{{ next }}">{% endblock %}
+{% block login_button %}Войти в админ-панель →{% endblock %}
+{% block login_alternative %}Вы продавец или покупатель? <a href="{% url 'login' %}">Вход в личный кабинет ↗</a>{% endblock %}
