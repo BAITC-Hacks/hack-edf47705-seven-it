@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from forecast.ai import AiAnswer, AiRecommendation
-from forecast.models import Dataset
+from forecast.models import Business, Dataset
 
 
 class ViewsTests(TestCase):
@@ -49,6 +49,22 @@ class ViewsTests(TestCase):
         response = self.client.get(reverse('sample_csv'))
         self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
         self.assertTrue(response.content.decode().startswith('date,category,quantity'))
+
+    def test_failed_import_does_not_leave_an_empty_business(self):
+        for route in ('upload', 'demo'):
+            with self.subTest(route=route):
+                payload = {}
+                if route == 'upload':
+                    payload = {
+                        'name': 'Кофейня', 'business_type': 'retail', 'region': 'Алматы',
+                        'lead_time_weeks': 2,
+                        'file': SimpleUploadedFile('sales.csv', b'date,category,quantity\n2026-01-01,Coffee,25\n'),
+                    }
+                with mock.patch('forecast.views.services.create_dataset', side_effect=RuntimeError('Import failed')):
+                    with self.assertRaises(RuntimeError):
+                        self.client.post(reverse(route), payload)
+                self.assertFalse(Business.objects.exists())
+                self.assertFalse(Dataset.objects.exists())
 
     @mock.patch.dict('os.environ', {'ANTHROPIC_API_KEY': '', 'ANTHROPIC_AUTH_TOKEN': ''})
     def test_recommend_without_key_falls_back_to_rules_with_note(self):

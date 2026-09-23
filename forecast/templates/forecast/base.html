@@ -1,151 +1,69 @@
+{% load static %}
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
   <title>{% block title %}Foresell{% endblock %}</title>
+  <script src="{% static 'forecast/theme.js' %}"></script>
+  <link rel="icon" href="{% static 'forecast/favicon.svg' %}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f6f6f3;
-      --surface: #ffffff;
-      --surface-2: #f0efeb;
-      --border: #e3e2dc;
-      --text: #0b0b0b;
-      --text-2: #52514e;
-      --text-3: #7a7974;
-      --accent: #2a78d6;
-      --accent-ink: #ffffff;
-      --accent-soft: #e6f0fb;
-      --good: #0b7a3b;
-      --good-soft: #e3f4e9;
-      --bad: #c23b3a;
-      --bad-soft: #fbe7e6;
-      --warn: #9a6400;
-      --warn-soft: #fdf1d8;
-      --series-1: #2a78d6;
-      --grid: #e8e7e2;
-      --radius: 12px;
-      --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 16px rgba(0, 0, 0, .04);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        color-scheme: dark;
-        --bg: #121211;
-        --surface: #1a1a19;
-        --surface-2: #232321;
-        --border: #2f2f2c;
-        --text: #ffffff;
-        --text-2: #c3c2b7;
-        --text-3: #8d8c85;
-        --accent: #3987e5;
-        --accent-ink: #ffffff;
-        --accent-soft: #1b2a3d;
-        --good: #4cc27a;
-        --good-soft: #16291d;
-        --bad: #ef7b7a;
-        --bad-soft: #331b1b;
-        --warn: #e0a93a;
-        --warn-soft: #2f2615;
-        --series-1: #3987e5;
-        --grid: #2a2a28;
-        --shadow: none;
-      }
-    }
-    :root[data-theme="dark"] {
-      color-scheme: dark;
-      --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --border: #2f2f2c;
-      --text: #ffffff; --text-2: #c3c2b7; --text-3: #8d8c85;
-      --accent: #3987e5; --accent-ink: #ffffff; --accent-soft: #1b2a3d;
-      --good: #4cc27a; --good-soft: #16291d; --bad: #ef7b7a; --bad-soft: #331b1b;
-      --warn: #e0a93a; --warn-soft: #2f2615; --series-1: #3987e5; --grid: #2a2a28; --shadow: none;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--accent); }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-    header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
-    header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--text); text-decoration: none; letter-spacing: -.01em; }
-    .logo svg { color: var(--accent); }
-    .top-note { color: var(--text-3); font-size: 13px; }
-    main { padding: 32px 0 64px; }
-    h1, h2, h3 { letter-spacing: -.02em; line-height: 1.2; margin: 0; }
-    h1 { font-size: clamp(28px, 4.5vw, 44px); font-weight: 700; }
-    h2 { font-size: 20px; font-weight: 600; }
-    h3 { font-size: 16px; font-weight: 600; }
-    .muted { color: var(--text-2); }
-    .small { font-size: 13px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 10px 18px; border-radius: 10px; border: 1px solid transparent;
-      font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
-    }
-    .btn-primary { background: var(--accent); color: var(--accent-ink); }
-    .btn-primary:hover { filter: brightness(1.07); }
-    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
-    .btn-secondary:hover { background: var(--surface-2); }
-    .btn[disabled] { opacity: .65; cursor: progress; }
-    .messages { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 8px; }
-    .messages li { padding: 10px 14px; border-radius: 10px; font-size: 14px; }
-    .messages .success { background: var(--good-soft); color: var(--good); }
-    .messages .warning, .messages .error { background: var(--warn-soft); color: var(--warn); }
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .badge-good { background: var(--good-soft); color: var(--good); }
-    .badge-bad { background: var(--bad-soft); color: var(--bad); }
-    .badge-neutral { background: var(--surface-2); color: var(--text-2); }
-    .badge-accent { background: var(--accent-soft); color: var(--accent); }
-    .badge-warn { background: var(--warn-soft); color: var(--warn); }
-    label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 6px; }
-    input[type=text], input[type=number], select, input[type=file] {
-      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
-      background: var(--surface); color: var(--text); font: inherit;
-    }
-    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-    .field { margin-bottom: 14px; }
-    .field .help { color: var(--text-3); font-size: 12px; margin-top: 4px; }
-    .field .errorlist { list-style: none; padding: 0; margin: 6px 0 0; color: var(--bad); font-size: 13px; }
-    @media (max-width: 600px) { .top-note { display: none; } }
-    footer { color: var(--text-3); font-size: 13px; padding: 24px 0 40px; border-top: 1px solid var(--border); }
-    {% block extra_style %}{% endblock %}
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'forecast/app.css' %}">
 </head>
 <body>
-  <header class="top">
-    <div class="wrap">
-      <a class="logo" href="{% url 'index' %}">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="24" height="24" rx="7" stroke="currentColor" stroke-width="2"/>
-          <path d="M6 17l4.5-5 3.5 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M16.5 8H20v3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Foresell
-      </a>
-      <span class="top-note">Know what sells before it sells</span>
-    </div>
-  </header>
-  <main>
-    <div class="wrap">
-      {% if messages %}
-        <ul class="messages">
-          {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
-        </ul>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16M8 14l4-5 4 3 4-7"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m4 16 6-6 4 4 6-8m-6 0h6v6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m4 8 6 6 4-4 6 8m-6 0h6v-6"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8m-8 4h6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14a8.5 8.5 0 0 1-10-10A8.5 8.5 0 1 0 20 14Z"/></symbol>
+  </svg>
+  <aside class="sidebar" aria-label="Боковая панель">
+    <a class="logo" href="{% url 'index' %}" aria-label="Foresell — главная">
+      {% include 'forecast/includes/brand.html' %}
+    </a>
+    <span class="brand-tagline">Know what sells before it sells.</span>
+    <div class="workspace-label">МЕНЮ</div>
+    <nav class="navigation" aria-label="Основная навигация">
+      <a href="{% url 'index' %}" class="nav-link {% if not dataset %}active{% endif %}" {% if not dataset %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Главная</a>
+      <a href="{% url 'index' %}#upload" class="nav-link"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Загрузить продажи</a>
+      {% if dataset %}
+      <a href="#forecast" class="nav-link active" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Прогноз спроса</a>
+      <a href="#recommendations" class="nav-link"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>Что делать дальше</a>
+      {% else %}
+      <a href="#how-it-works" class="nav-link"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Как это работает</a>
       {% endif %}
-      {% block content %}{% endblock %}
+      {% if request.user.is_active and request.user.is_staff %}
+      <a href="{% url 'admin:index' %}" class="nav-link"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Управление</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-note"><span class="status-dot"></span>Решения на основе данных<p>Меньше догадок.<br>Больше ясности.</p></div>
+      <div class="team"><span class="team-avatar">7</span><div><strong>Seven IT</strong><span>Команда Foresell</span></div></div>
     </div>
-  </main>
-  <footer>
-    <div class="wrap">Foresell · прогноз спроса по вашим собственным данным · команда Seven IT</div>
-  </footer>
+  </aside>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="breadcrumb"><span>Foresell</span><span aria-hidden="true">/</span><strong>{% block breadcrumb %}Главная{% endblock %}</strong></div>
+      {% include 'forecast/includes/theme_switch.html' %}
+    </header>
+    <main id="main" class="page" tabindex="-1">
+      {% if messages %}<ul class="messages" aria-live="polite">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer"><span>Foresell <span aria-hidden="true">·</span> Знайте спрос заранее</span><span>Сделано командой Seven IT</span></footer>
+  </div>
   {% block scripts %}{% endblock %}
 </body>
 </html>

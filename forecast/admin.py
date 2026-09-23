@@ -104,16 +104,16 @@ class BusinessAdmin(NoDeleteAdmin):
 
 @admin.register(Dataset)
 class DatasetAdmin(NoDeleteAdmin):
-    list_display = ('name', 'business', 'record_count', 'recommendations_source', 'recommendations_at', 'created_at')
+    list_display = ('name', 'business', 'record_count', 'recommendations_source', 'recommendations_at', 'report_link')
     list_filter = ('recommendations_source', 'business__business_type', 'created_at')
     search_fields = ('name', 'business__name', 'business__region')
     ordering = ('-created_at', '-pk')
     list_select_related = ('business',)
     date_hierarchy = 'created_at'
     readonly_fields = ('business', 'created_at', 'recommendations', 'recommendations_source',
-                       'recommendations_at', 'records_link')
-    fields = ('name', 'business', 'created_at', 'records_link', 'recommendations_source',
-              'recommendations_at', 'recommendations')
+                       'recommendations_at', 'recommendations_note', 'records_link', 'report_link')
+    fields = ('name', 'business', 'created_at', 'records_link', 'report_link', 'recommendations_source',
+              'recommendations_at', 'recommendations_note', 'recommendations')
     actions = ('recalculate',)
 
     def has_add_permission(self, request):
@@ -129,6 +129,10 @@ class DatasetAdmin(NoDeleteAdmin):
     @admin.display(description='История')
     def records_link(self, obj):
         return related_list('record', 'dataset__id__exact', obj.pk, 'Открыть записи')
+
+    @admin.display(description='Прогноз')
+    def report_link(self, obj):
+        return format_html('<a href="{}">Открыть прогноз</a>', reverse('dashboard', args=[obj.pk]))
 
     @admin.action(description='Пересчитать рекомендации по правилам', permissions=['change'])
     def recalculate(self, request, queryset):

@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -38,9 +39,10 @@ def upload(request):
             'datasets': Dataset.objects.select_related('business')[:8],
         }, status=400)
 
-    business = form.save()
     parsed = form.parsed
-    dataset = services.create_dataset(business, request.FILES['file'].name, parsed.rows)
+    with transaction.atomic():
+        business = form.save()
+        dataset = services.create_dataset(business, request.FILES['file'].name, parsed.rows)
     if parsed.skipped_count:
         messages.warning(
             request,
@@ -51,8 +53,9 @@ def upload(request):
 
 @require_POST
 def demo(request):
-    business = Business.objects.create(**DEMO_BUSINESS)
-    dataset = services.create_dataset(business, 'Демо: продажи 2024–2026', demo_rows())
+    with transaction.atomic():
+        business = Business.objects.create(**DEMO_BUSINESS)
+        dataset = services.create_dataset(business, 'Демо: продажи 2024–2026', demo_rows())
     return redirect('dashboard', dataset_id=dataset.id)
 
 

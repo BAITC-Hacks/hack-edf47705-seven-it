@@ -1,0 +1,101 @@
+/* Keep Django's forms, permissions and responsive layout; share Foresell branding. */
+html[data-theme="light"], :root {
+  --primary: #1264d6;
+  --secondary: #125fc4;
+  --accent: #1264d6;
+  --primary-fg: #fff;
+  --body-fg: #15191f;
+  --body-bg: #f7f8fa;
+  --body-quiet-color: #536071;
+  --body-medium-color: #536071;
+  --body-loud-color: #15191f;
+  --header-bg: #fff;
+  --header-color: #536071;
+  --header-branding-color: #15191f;
+  --header-link-color: #125fc4;
+  --breadcrumbs-bg: #edf4ff;
+  --breadcrumbs-fg: #536071;
+  --breadcrumbs-link-fg: #125fc4;
+  --link-fg: #125fc4;
+  --link-hover-color: #0b50b2;
+  --link-selected-fg: #0b50b2;
+  --border-color: #dfe4ec;
+  --hairline-color: #dfe4ec;
+  --darkened-bg: #f0f3f7;
+  --selected-bg: #e0ecff;
+  --selected-row: #edf4ff;
+  --button-fg: #fff;
+  --button-bg: #1264d6;
+  --button-hover-bg: #0b50b2;
+  --default-button-bg: #1264d6;
+  --default-button-hover-bg: #0b50b2;
+  --object-tools-bg: #1264d6;
+  --object-tools-hover-bg: #0b50b2;
+  --brand-bar: #126de5;
+  --brand-dot: #00a65a;
+  --panel-bg: #fff;
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  --primary: #166bde;
+  --secondary: #166bde;
+  --accent: #8bbcff;
+  --body-fg: #f5f7fa;
+  --body-bg: #0b0d10;
+  --body-quiet-color: #bec8d5;
+  --body-medium-color: #bec8d5;
+  --body-loud-color: #f5f7fa;
+  --header-bg: #13171d;
+  --header-color: #bec8d5;
+  --header-branding-color: #f5f7fa;
+  --header-link-color: #8bbcff;
+  --breadcrumbs-bg: #192c46;
+  --breadcrumbs-fg: #bec8d5;
+  --breadcrumbs-link-fg: #8bbcff;
+  --link-fg: #8bbcff;
+  --link-hover-color: #b5d5ff;
+  --link-selected-fg: #b5d5ff;
+  --border-color: #2e3744;
+  --hairline-color: #2e3744;
+  --darkened-bg: #1b212a;
+  --selected-bg: #233954;
+  --selected-row: #192c46;
+  --button-bg: #166bde;
+  --default-button-bg: #166bde;
+  --brand-bar: #f6f8fc;
+  --brand-dot: #0cc978;
+  --panel-bg: #13171d;
+  --error-fg: #ffa697;
+  --message-success-bg: #142e23;
+  --message-warning-bg: #33291a;
+  --message-error-bg: #3a2122;
+  --message-info-bg: #192c46;
+  --message-debug-bg: #1b212a;
+  color-scheme: dark;
+}
+#header { border-bottom: 1px solid var(--border-color); gap: 20px; }
+#header .logo { display: inline-flex; align-items: center; gap: 9px; color: var(--body-fg); text-decoration: none; }
+.brand-mark { width: 32px; height: 38px; }
+.brand-mark path { fill: var(--brand-bar); }
+.brand-mark circle { fill: var(--brand-dot); }
+.brand-name { font-size: 28px; font-weight: 700; letter-spacing: -1.3px; }
+.admin-brand-caption { display: block; font-size: 12px; color: var(--body-quiet-color); margin-top: 5px; }
+#user-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.theme-switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border-color); border-radius: 11px; background: var(--darkened-bg); }
+.theme-switch[hidden] { display: none; }
+.theme-switch button { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 8px 11px; border: 1px solid transparent; border-radius: 7px; color: var(--body-quiet-color); background: transparent; cursor: pointer; font: inherit; }
+.theme-switch button[aria-pressed="true"] { color: var(--body-fg); background: var(--panel-bg); border-color: var(--border-color); font-weight: 600; }
+.theme-switch .icon { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.theme-switch button:focus-visible, #header .logo:focus-visible { outline: 3px solid var(--link-fg); outline-offset: 3px; }
+.module, .inline-group { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; }
+.module h2, .module caption, .inline-group h2 { border-radius: 9px 9px 0 0; }
+.module table { border-radius: 10px; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 7px; }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=url], select, textarea { background: var(--panel-bg); color: var(--body-fg); border-radius: 7px; }
+.admin-footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px 40px; color: var(--body-quiet-color); font-size: 12px; }
+body.login #container { background: var(--panel-bg); border-radius: 14px; }
+body.login #branding { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+body.login #header { background: var(--panel-bg); border-radius: 14px 14px 0 0; }
+body.login .admin-brand { text-align: center; }
+body.login .admin-footer { flex-wrap: wrap; padding-inline: 24px; }
+@media (max-width: 767px) { .admin-footer { padding: 20px; } #user-tools { justify-content: center; } }

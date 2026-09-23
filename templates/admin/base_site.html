@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Foresell{% endblock %}
+{% block dark-mode-vars %}
+  <meta name="theme-color" content="#f7f8fa">
+  <script src="{% static 'forecast/theme.js' %}"></script>
+{% endblock %}
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'forecast/admin.css' %}">
+  <link rel="icon" href="{% static 'forecast/favicon.svg' %}" type="image/svg+xml">
+{% endblock %}
+{% block branding %}
+  <div class="admin-brand">
+    <a class="logo" href="{% url 'admin:index' %}" aria-label="Foresell — панель управления">{% include 'forecast/includes/brand.html' %}</a>
+    <span class="admin-brand-caption">Управление бизнесом и данными</span>
+  </div>
+  {% if user.is_anonymous %}{% include 'forecast/includes/theme_switch.html' %}{% endif %}
+{% endblock %}
+{% block footer %}<div class="admin-footer"><a href="{% url 'index' %}">← Вернуться в Foresell</a><span>Seven IT</span></div>{% endblock %}

@@ -134,3 +134,31 @@ class AdminTests(TestCase):
         response = self.client.get(reverse('admin:forecast_record_changelist'), {'dataset__id__exact': self.dataset.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['cl'].result_count, 12)
+
+    def test_admin_theme_is_shared_with_public_site(self):
+        response = self.client.get(reverse('admin:login'))
+        self.assertTemplateUsed(response, 'admin/base_site.html')
+        self.assertContains(response, 'forecast/admin.css')
+        self.assertContains(response, 'forecast/theme.js')
+        self.assertContains(response, 'data-set-theme="dark"')
+        self.assertNotContains(response, 'admin/js/theme.js')
+        self.client.force_login(self.root)
+        response = self.client.get(reverse('admin:index'))
+        self.assertContains(response, 'data-set-theme="light"')
+        self.assertContains(response, 'brand-mark')
+
+    def test_site_admin_link_is_only_shown_to_active_staff(self):
+        admin_url = f'href="{reverse("admin:index")}"'
+        self.assertNotContains(self.client.get(reverse('index')), admin_url)
+        self.client.force_login(self.regular)
+        self.assertNotContains(self.client.get(reverse('index')), admin_url)
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse('index')), admin_url)
+
+    def test_dataset_admin_links_to_report_and_explains_recommendations(self):
+        self.grant('view_dataset')
+        self.dataset.recommendations_note = 'Использованы рекомендации по правилам.'
+        self.dataset.save(update_fields=['recommendations_note'])
+        response = self.client.get(self.change_url('dataset', self.dataset))
+        self.assertContains(response, reverse('dashboard', args=[self.dataset.pk]))
+        self.assertContains(response, self.dataset.recommendations_note)

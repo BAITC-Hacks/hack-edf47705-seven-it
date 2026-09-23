@@ -10,11 +10,21 @@ class UploadForm(forms.ModelForm):
     file = forms.FileField(
         label='Файл CSV',
         help_text='Колонки: дата, категория, количество. Подойдёт выгрузка из кассы, 1С или Excel.',
+        widget=forms.FileInput(attrs={'accept': '.csv,text/csv'}),
     )
 
     class Meta:
         model = Business
         fields = ['name', 'business_type', 'region', 'lead_time_weeks']
+        labels = {
+            'name': 'Название бизнеса',
+            'business_type': 'Чем вы занимаетесь?',
+            'region': 'Город или регион',
+            'lead_time_weeks': 'Срок подготовки (недели)',
+        }
+        help_texts = {
+            'lead_time_weeks': 'Например: 2, если доставка товара занимает две недели.',
+        }
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'Например, «Автозапчасти на Абая»'}),
             'region': forms.TextInput(attrs={'placeholder': 'Например, Алматы'}),
