@@ -1,6 +1,29 @@
 {% extends "admin/base.html" %}
 {% load static %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Foresell{% endblock %}
+{% block bodyclass %}{{ block.super }} pro-admin{% if has_permission and not is_popup %} pro-authenticated{% endif %}{% endblock %}
+{% block responsive %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'forecast/admin_pro.css' %}?v=20260923-2">
+  <script src="{% static 'forecast/admin_shell.js' %}?v=20260923-2" defer></script>
+{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block header %}
+  {% if has_permission %}
+    {% include 'admin/workspace_sidebar.html' %}
+    <header id="header" class="pro-topbar">
+      <div class="pro-topbar-start">
+        <button type="button" class="pro-menu-toggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="pro-sidebar" hidden>☰</button>
+        <span class="pro-topbar-label">Рабочее пространство</span><span class="pro-topbar-divider">/</span><strong>Администрирование</strong>
+      </div>
+      <div class="pro-topbar-end">
+        {% include 'forecast/includes/theme_switch.html' %}
+        <span class="pro-avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span>
+        <div class="pro-account"><strong>{% firstof user.get_short_name user.get_username %}</strong><span>{% if user.is_superuser %}Суперадминистратор{% else %}Сотрудник{% endif %}</span></div>
+      </div>
+    </header>
+  {% else %}{{ block.super }}{% endif %}
+{% endblock %}
 {% block dark-mode-vars %}
   <meta name="theme-color" content="#f7f8fa">
   <script src="{% static 'forecast/theme.js' %}"></script>

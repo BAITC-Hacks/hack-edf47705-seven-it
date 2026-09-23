@@ -1,0 +1,23 @@
+{% load static %}
+<aside id="pro-sidebar" class="pro-sidebar" aria-label="Навигация администратора">
+  <a class="pro-logo" href="{% url 'admin:index' %}">{% include 'forecast/includes/brand.html' %}<span class="pro-logo-tag">ADMIN</span></a>
+  <div class="pro-workspace"><span class="pro-workspace-icon">F</span><div><strong>Foresell Workspace</strong><small>Управление платформой</small></div><span class="pro-online" title="Вы вошли в систему"></span></div>
+  <nav class="pro-navigation">
+    {% url 'admin:index' as overview_url %}
+    <span class="pro-nav-label">ОБЗОР</span>
+    <a class="pro-nav-item{% if request.path == overview_url %} is-active{% endif %}" href="{{ overview_url }}"{% if request.path == overview_url %} aria-current="page"{% endif %}><span class="pro-nav-icon" aria-hidden="true">◫</span>Главная панель</a>
+    {% for app in available_apps %}
+      <span class="pro-nav-label">{{ app.name }}</span>
+      {% for model in app.models %}
+        {% if model.admin_url %}<a class="pro-nav-item{% if model.admin_url in request.path %} is-active{% endif %}" href="{{ model.admin_url }}"{% if model.admin_url in request.path %} aria-current="page"{% endif %}><span class="pro-nav-icon" aria-hidden="true">{% if model.object_name == 'User' %}♙{% elif model.object_name == 'Group' %}◈{% elif model.object_name == 'Business' %}▦{% elif model.object_name == 'Record' %}≡{% else %}▤{% endif %}</span><span>{{ model.name }}</span></a>{% endif %}
+      {% endfor %}
+    {% endfor %}
+  </nav>
+  <div class="pro-sidebar-bottom">
+    <div class="pro-access-note"><span aria-hidden="true">◈</span><strong>Доступ под контролем</strong><p>Каждому сотруднику — только нужные инструменты.</p></div>
+    <a href="{% url 'index' %}" class="pro-sidebar-link">↗ Открыть сайт</a>
+    {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}" class="pro-sidebar-link">Настройки пароля</a>{% endif %}
+    <form action="{% url 'admin:logout' %}" method="post" class="pro-logout">{% csrf_token %}<button type="submit">Выйти из аккаунта <span aria-hidden="true">→</span></button></form>
+  </div>
+</aside>
+<button type="button" class="pro-menu-backdrop" aria-label="Закрыть меню" hidden></button>

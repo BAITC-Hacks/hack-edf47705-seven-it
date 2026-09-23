@@ -11,11 +11,14 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import Business, Dataset, Record
+from .admin_forms import AdminGroupForm, AdminUserForm
 from .services import refresh_recommendations
 
 admin.site.site_header = 'Администрирование Foresell'
 admin.site.site_title = 'Foresell — управление'
 admin.site.index_title = 'Управление бизнесом и данными'
+admin.site.enable_nav_sidebar = False  # The admin-only shell supplies its own navigation.
+admin.site.index_template = 'admin/workspace_index.html'
 
 
 class ProtectedIdentityAdmin:
@@ -37,11 +40,32 @@ admin.site.unregister(Group)
 
 @admin.register(User)
 class SafeUserAdmin(ProtectedIdentityAdmin, UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff')
+    form = AdminUserForm
+    filter_horizontal = ('groups',)
+    list_display = ('username', 'email', 'first_name', 'last_name', 'access_status', 'is_active', 'is_staff')
     list_per_page = 50
+    search_help_text = 'Поиск по логину, имени, фамилии или email.'
+
+    @admin.display(description='Уровень доступа', ordering='is_superuser')
+    def access_status(self, obj):
+        if not obj.is_active:
+            label, style = 'Отключён', 'muted'
+        elif obj.is_superuser:
+            label, style = 'Суперадминистратор', 'accent'
+        elif obj.is_staff:
+            label, style = 'Сотрудник', 'success'
+        else:
+            label, style = 'Пользователь', 'muted'
+        return format_html('<span class="access-badge access-badge--{}">{}</span>', style, label)
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
+        if obj:
+            fieldsets = tuple((title, {**options, **({'description':
+                'Активность и статус сотрудника открывают вход в панель. Группы объединяют права; '
+                'индивидуальные права дополняют их. Суперадминистратор получает все права. '
+                'Изменение пользователей и групп доступно только суперадминистратору.'
+            } if 'user_permissions' in options['fields'] else {})}) for title, options in fieldsets)
         if request.user.is_superuser:
             return fieldsets
         return tuple((title, {**options, 'fields': tuple(
@@ -51,7 +75,23 @@ class SafeUserAdmin(ProtectedIdentityAdmin, UserAdmin):
 
 @admin.register(Group)
 class SafeGroupAdmin(ProtectedIdentityAdmin, GroupAdmin):
+    form = AdminGroupForm
+    filter_horizontal = ()
     list_per_page = 50
+    list_display = ('name', 'permission_count', 'member_count')
+    search_help_text = 'Найдите группу по названию. Права группы наследуются её участниками.'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            _permissions=Count('permissions', distinct=True), _members=Count('user', distinct=True))
+
+    @admin.display(description='Разрешения', ordering='_permissions')
+    def permission_count(self, obj):
+        return obj._permissions
+
+    @admin.display(description='Участники', ordering='_members')
+    def member_count(self, obj):
+        return obj._members
 
 
 class NoDeleteAdmin(admin.ModelAdmin):
