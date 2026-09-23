@@ -48,10 +48,11 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'forecast.middleware.SeparateAdminSessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'forecast.middleware.PublicIdentityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -129,6 +130,14 @@ STATICFILES_DIRS = [('catalog-photos', BASE_DIR / 'photo' / 'catalog')]
 # Set False when switching this installation to actual seller histories.
 MARKET_DEMO_MODE = True
 
+# Customers and administrators can sign in independently in the same browser.
+SESSION_COOKIE_NAME = 'foresell_session'
+ADMIN_SESSION_COOKIE_NAME = 'foresell_admin_session'
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'account'
+LOGOUT_REDIRECT_URL = 'index'
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -146,7 +155,3 @@ ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-opus-5')
 # Max size of an uploaded CSV file.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-
-LOGIN_URL = 'market:login'
-LOGIN_REDIRECT_URL = 'market:catalog'
-LOGOUT_REDIRECT_URL = 'index'

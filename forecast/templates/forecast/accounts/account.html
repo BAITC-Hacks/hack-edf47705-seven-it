@@ -1,0 +1,11 @@
+{% extends 'forecast/base.html' %}
+{% block title %}Мой профиль — Foresell{% endblock %}
+{% block breadcrumb %}Личный кабинет{% endblock %}
+{% block content %}
+<section class="account-profile">
+  <span class="eyebrow">ЛИЧНЫЙ КАБИНЕТ</span><h1>Мой профиль</h1><p class="muted">Вы вошли в свой аккаунт.</p>
+  <div class="card account-profile-card"><div class="account-profile-heading"><span class="account-avatar" aria-hidden="true">{{ request.user.email|default:request.user.username|first|upper }}</span><div><h2>{{ request.user.email|default:request.user.username }}</h2><div class="account-role-tags">{% for role in account_roles %}<span>{{ role }}</span>{% empty %}<span>Пользователь</span>{% endfor %}</div></div></div>
+  <dl class="account-details"><div><dt>Email</dt><dd>{{ request.user.email|default:'Не указан' }}</dd></div><div><dt>Имя</dt><dd>{{ request.user.get_full_name|default:'Не указано' }}</dd></div><div><dt>Дата регистрации</dt><dd>{{ request.user.date_joined|date:'d.m.Y' }}</dd></div><div><dt>Статус</dt><dd>Активный аккаунт</dd></div></dl>
+  <div class="account-profile-actions"><a class="btn btn-primary" href="{% url 'market:catalog' %}">Открыть каталог →</a>{% if account_is_seller %}<a class="btn btn-secondary" href="{% url 'market:seller' %}">Мои товары</a>{% endif %}<a class="btn btn-secondary" href="{% url 'market:ledger' %}">Мои финансы</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="btn btn-secondary">Выйти из аккаунта</button></form></div></div>
+</section>
+{% endblock %}

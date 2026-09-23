@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'forecast/app.css' %}">
   <link rel="stylesheet" href="{% static 'market/market.css' %}">
+  <link rel="stylesheet" href="{% static 'forecast/accounts.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'forecast/simple.css' %}">
   <link rel="stylesheet" href="{% static 'market/showcase.css' %}">
 </head>
@@ -49,14 +50,15 @@
           {% if request.user.is_authenticated %}
           <p class="account-name">{{ request.user.username }}</p>
           <p class="muted small">{% if account_is_seller %}Продавец{% else %}Покупатель{% endif %}</p>
+          <a href="{% url 'account' %}">Личный кабинет</a>
           <a href="{% url 'market:catalog' %}?saved=1">Избранное</a>
           {% if account_is_seller %}<a href="{% url 'market:seller' %}">Мои товары</a>{% endif %}
-          {% if request.user.is_active and request.user.is_staff %}<a href="{% url 'admin:index' %}">Управление</a>{% endif %}
           {% else %}
           <a class="btn btn-primary" href="{% url 'market:login' %}">Войти</a>
           <a href="{% url 'market:register' %}">Создать аккаунт</a>
           {% endif %}
           <div class="account-theme"><span>Оформление</span>{% include 'forecast/includes/theme_switch.html' %}</div>
+          <a href="{% url 'admin:index' %}">Вход администратора</a>
           {% if request.user.is_authenticated %}<form method="post" action="{% url 'market:logout' %}">{% csrf_token %}<button class="plain-button" type="submit">Выйти из аккаунта</button></form>{% endif %}
         </div>
       </details>

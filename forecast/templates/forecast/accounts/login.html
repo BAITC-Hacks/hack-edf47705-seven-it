@@ -1,0 +1,14 @@
+{% extends 'forecast/base.html' %}
+{% block title %}Вход в личный кабинет — Foresell{% endblock %}
+{% block breadcrumb %}Вход{% endblock %}
+{% block content %}
+<section class="account-layout">
+  <div class="account-intro"><span class="eyebrow">{% block login_eyebrow %}ВАШ АККАУНТ FORESELL{% endblock %}</span><h1>Рады видеть<br>вас снова.</h1><p>{% block login_description %}Войдите с email и паролем своего аккаунта продавца или покупателя.{% endblock %}</p><div class="account-role-tags">{% block login_roles %}<span>Продавец</span><span>Покупатель</span>{% endblock %}</div></div>
+  <div class="card account-card"><h2>{% block login_heading %}Вход в личный кабинет{% endblock %}</h2><p class="muted">Введите данные своего аккаунта.</p><form method="post" action="{% block login_action %}{% url 'login' %}{% endblock %}">{% csrf_token %}
+    {% block login_extra_fields %}{% endblock %}
+    {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+    <button class="btn btn-primary account-submit" type="submit">{% block login_button %}Войти в аккаунт →{% endblock %}</button>
+  </form><div class="account-separator"></div><p class="account-admin-note">{% block login_alternative %}Управляете платформой? <a href="{% url 'admin:login' %}">Вход для администратора ↗</a>{% endblock %}</p></div>
+</section>
+{% endblock %}
