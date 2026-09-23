@@ -1,13 +1,14 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Avg, Count, F, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,6 +18,7 @@ from .excel import workbook_bytes
 from .forms import DateRangeForm, HistoryImportForm, LedgerForm, ObservationForm, ProductForm, RegistrationForm, ReviewForm, SupportForm
 from .insights import product_insights
 from .models import Favorite, LedgerEntry, Observation, Product, Profile, Review, SupportMessage
+from .presentation import DEMO_HOME_NAMES, demo_scenario, product_presentation
 from .support import FAQ, support_answer
 
 
@@ -44,23 +46,27 @@ def register(request):
         login(request, user)
         messages.success(request, 'Аккаунт создан. Добро пожаловать в Foresell!')
         return redirect('market:catalog')
-    return render(request, 'market/form.html', {'form': form, 'title': 'Создать аккаунт', 'submit_label': 'Зарегистрироваться'})
+    return render(request, 'market/register.html', {'form': form})
 
 
-def catalog_query(request):
+def catalog_query(request, *, for_presentation=False):
     query = product_query().filter(is_published=True)
     search = request.GET.get('q', '').strip()[:160]
     kind = request.GET.get('kind', '')
     region = request.GET.get('region', '').strip()[:100]
     if search:
-        query = query.filter(Q(title__icontains=search) | Q(description__icontains=search))
+        title_filter = Q(title__icontains=search) | Q(description__icontains=search)
+        if for_presentation:
+            named_homes = [key for key, title in DEMO_HOME_NAMES.items() if search.casefold() in title.casefold()]
+            title_filter |= Q(photo_key__in=named_homes) | Q(demo_key__in=named_homes)
+        query = query.filter(title_filter)
     if kind in Product.Kind.values:
         query = query.filter(kind=kind)
-    if region:
+    if region and not for_presentation:
         query = query.filter(region__icontains=region)
     sort = request.GET.get('sort', '')
     if sort == 'price':
-        query = query.order_by('price', 'pk')
+        query = query.order_by(F('price').asc(nulls_last=True), 'pk')
     elif sort == 'rating':
         query = query.annotate(average_rating=Avg('reviews__rating', filter=Q(reviews__is_hidden=False))).order_by('-average_rating', '-pk')
     elif sort == 'interest':
@@ -71,16 +77,47 @@ def catalog_query(request):
 
 
 def catalog(request):
-    page = Paginator(catalog_query(request), 12).get_page(request.GET.get('page'))
-    cards = [{'product': product, 'insight': product_insights(product)} for product in page]
+    demo_mode = settings.MARKET_DEMO_MODE
+    products = catalog_query(request, for_presentation=demo_mode)
+    if demo_mode and request.GET.get('region', '').strip():
+        region = request.GET['region'].strip()[:100].casefold()
+        products = [product for product in products
+                    if region in dict(demo_scenario(product)['facts']).get('Расположение', product.region).casefold()]
+    # Presentation prices and scores are separate from the stored values.
+    # Sort the same numbers the visitor sees on the demonstration cards.
+    if demo_mode and request.GET.get('sort') in ('price', 'rating'):
+        sort_key = 'price' if request.GET['sort'] == 'price' else 'rating'
+        products = sorted(products, key=lambda product: demo_scenario(product)[sort_key],
+                          reverse=sort_key == 'rating')
+    page = Paginator(products, 12).get_page(request.GET.get('page'))
+    cards = []
+    for product in page:
+        insight = product_insights(product)
+        cards.append({'product': product, 'insight': insight,
+                      'display': product_presentation(product, insight, demo=demo_mode)})
     params = request.GET.copy()
     params.pop('page', None)
+    params.pop('demo', None)
+    params.pop('scenario', None)
+    category_links = []
+    for value, label in [('', 'Все'), ('home', 'Дома'), ('car', 'Авто'), ('electronics', 'Техника'), ('food', 'Продукты'), ('goods', 'Опт')]:
+        category_params = params.copy()
+        category_params.pop('kind', None)
+        if value:
+            category_params['kind'] = value
+        category_links.append({'label': label, 'query': category_params.urlencode(),
+                               'selected': request.GET.get('kind', '') == value})
     return render(request, 'market/catalog.html', {'cards': cards, 'page': page, 'kinds': Product.Kind.choices,
-        'is_seller': is_seller(request.user), 'filters': request.GET, 'pagination_query': params.urlencode()})
+        'is_seller': is_seller(request.user), 'filters': request.GET, 'pagination_query': params.urlencode(),
+        'category_links': category_links, 'demo_mode': demo_mode})
 
 
 def product_detail(request, pk):
     product = get_object_or_404(visible_products(request.user), pk=pk)
+    demo_mode = settings.MARKET_DEMO_MODE
+    if demo_mode and request.method == 'POST':
+        messages.info(request, 'Сейчас открыт демонстрационный каталог. Отзывы в нём созданы для презентации.')
+        return redirect('market:product', pk=pk)
     existing = Review.objects.filter(product=product, author=request.user).first() if request.user.is_authenticated else None
     form = ReviewForm(request.POST or None, instance=existing)
     if request.method == 'POST':
@@ -93,7 +130,10 @@ def product_detail(request, pk):
                 defaults={'rating': form.cleaned_data['rating'], 'comment': form.cleaned_data['comment']})
             messages.success(request, 'Ваш отзыв сохранён.')
             return redirect('market:product', pk=pk)
-    return render(request, 'market/product.html', {'product': product, 'insight': product_insights(product),
+    insight = product_insights(product)
+    display = product_presentation(product, insight, demo=demo_mode)
+    return render(request, 'market/product.html', {'product': product, 'insight': insight,
+        'display': display, 'demo_mode': demo_mode,
         'reviews': product.reviews.filter(is_hidden=False).select_related('author'), 'review_form': form,
         'favorite': request.user.is_authenticated and Favorite.objects.filter(user=request.user, product=product).exists(),
         'is_owner': request.user.is_authenticated and product.seller_id == request.user.pk,
@@ -250,11 +290,6 @@ def ledger_excel(request):
         return HttpResponse('Некорректный период.', status=400)
     return excel_response('Доходы и расходы', ['Дата', 'Тип', 'Сумма, KZT', 'Категория', 'Описание'],
         [(row.date, row.get_direction_display(), row.amount, row.get_category_display(), row.note) for row in query], 'foresell-finances')
-
-
-def catalog_excel(request):
-    return excel_response('Каталог', ['Название', 'Категория', 'Регион', 'Цена, KZT', 'Остаток', 'Данные'],
-        [(p.title, p.get_kind_display(), p.region, p.price, p.stock, 'Демонстрационные' if p.is_demo else 'Данные продавца') for p in catalog_query(request)], 'foresell-catalog')
 
 
 def product_excel(request, pk):

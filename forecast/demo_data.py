@@ -9,6 +9,7 @@ DEMO_BUSINESS = {
     'region': 'Алматы',
     'lead_time_weeks': 3,
 }
+DEMO_DATASET_NAME = 'Демо: продажи 2024–2026'
 DEMO_START = date(2024, 1, 1)
 DEMO_END = date(2026, 8, 31)
 

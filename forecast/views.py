@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from . import services
-from .demo_data import DEMO_BUSINESS, demo_csv, demo_rows
+from .demo_data import demo_csv
 from .forms import UploadForm
 from .models import Business, Dataset
 from .recommendations import format_date, month_in
@@ -33,11 +33,104 @@ def accessible_datasets(request):
     return query.filter(permitted)
 
 
+SHORT_MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+
+
+def format_items(recommendations):
+    """Stored recommendation dicts plus the labels the action cards display."""
+    items = []
+    for item in recommendations.get('items', []):
+        icon, label = ACTION_LABELS.get(item['action'], ACTION_LABELS['hold'])
+        items.append({
+            **item,
+            'icon': icon,
+            'action_label': label,
+            'confidence_label': CONFIDENCE_LABELS.get(item['confidence'], ''),
+            'deadline_label': format_date(date.fromisoformat(item['deadline'])) if item.get('deadline') else '',
+        })
+    return items
+
+
+def short_month(label):
+    year, month = label.split('-')
+    return f'{SHORT_MONTHS[int(month) - 1]} {year}'
+
+
+def sparkline(insight, width=640, height=160, pad=6):
+    """SVG polyline points for the last 24 months of history and the forecast after it."""
+    history = insight.history[-24:]
+    values = [v for _, v in history] + [v for _, v in insight.forecast]
+    top = max(values) or 1
+    step = (width - 2 * pad) / (len(values) - 1)
+
+    def point(i, value):
+        return f'{pad + i * step:.1f},{height - pad - value / top * (height - 2 * pad):.1f}'
+
+    last = len(history) - 1
+    forecast = [history[-1][1]] + [v for _, v in insight.forecast]  # starts at the last actual point
+    split_x = pad + last * step
+    return {
+        'width': width,
+        'height': height,
+        'fact': ' '.join(point(i, v) for i, (_, v) in enumerate(history)),
+        'forecast': ' '.join(point(last + i, v) for i, v in enumerate(forecast)),
+        'split_x': f'{split_x:.1f}',
+        'future_width': f'{width - split_x:.1f}',
+        'split_pct': f'{split_x / width * 100:.1f}',
+        'start_label': short_month(history[0][0]),
+        'end_label': short_month(insight.forecast[-1][0]),
+    }
+
+
+def example_forecast():
+    """A ready-made forecast on the demo data, shown on the start page for presentations."""
+    dataset = services.get_demo_dataset()
+    report = services.load_report(dataset)
+    if not report.insights:
+        return None
+    items = format_items(dataset.recommendations or {})
+    insights = {i.category: i for i in report.insights}
+    # Feature the category with the most visible seasonal peak among those with a deadline.
+    featured = max(
+        (insights[i['category']] for i in items if i['action'] == 'prepare_peak' and i['category'] in insights),
+        key=lambda insight: insight.peak_index or 0,
+        default=report.insights[0],
+    )
+    next_deadline = next((i for i in report.upcoming_deadlines if i.order_by >= report.as_of), None)
+    # For the slide show one decision of each kind: the featured peak, a cut and a raise.
+    showcase = []
+    for wanted in (
+        lambda i: i['category'] == featured.category,
+        lambda i: i['action'] == 'decrease',
+        lambda i: i['action'] == 'increase',
+        lambda i: True,
+    ):
+        for item in items:
+            if len(showcase) < 3 and item not in showcase and wanted(item):
+                showcase.append(item)
+                break
+    while len(showcase) < 3 and len(showcase) < len(items):
+        showcase.append(next(i for i in items if i not in showcase))
+    return {
+        'dataset': dataset,
+        'business': dataset.business,
+        'report': report,
+        'items': showcase,
+        'featured': featured,
+        'featured_peak': month_in(featured.peak_month) if featured.peak_month else '',
+        'featured_order_by': format_date(featured.order_by) if featured.order_by else '',
+        'chart': sparkline(featured),
+        'next_deadline': next_deadline,
+        'next_deadline_label': format_date(next_deadline.order_by) if next_deadline else '',
+    }
+
+
 def index(request):
     form = UploadForm()
     return render(request, 'forecast/index.html', {
         'form': form,
         'datasets': accessible_datasets(request)[:8],
+        'example': example_forecast(),
     })
 
 
@@ -68,12 +161,7 @@ def upload(request):
 
 @require_POST
 def demo(request):
-    with transaction.atomic():
-        business = Business.objects.create(**DEMO_BUSINESS)
-        dataset = services.create_dataset(business, 'Демо: продажи 2024–2026', demo_rows())
-        dataset.is_demo = True
-        dataset.save(update_fields=['is_demo'])
-    return redirect('dashboard', dataset_id=dataset.id)
+    return redirect('dashboard', dataset_id=services.get_demo_dataset().id)
 
 
 def sample_csv(request):
@@ -98,16 +186,7 @@ def dashboard(request, dataset_id):
         })
 
     recs = dataset.recommendations or {}
-    items = []
-    for item in recs.get('items', []):
-        icon, label = ACTION_LABELS.get(item['action'], ACTION_LABELS['hold'])
-        items.append({
-            **item,
-            'icon': icon,
-            'action_label': label,
-            'confidence_label': CONFIDENCE_LABELS.get(item['confidence'], ''),
-            'deadline_label': format_date(date.fromisoformat(item['deadline'])) if item.get('deadline') else '',
-        })
+    items = format_items(recs)
 
     chart_data = {
         insight.category: {

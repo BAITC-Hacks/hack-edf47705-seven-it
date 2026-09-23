@@ -20,10 +20,10 @@ class UploadForm(forms.ModelForm):
             'name': 'Название бизнеса',
             'business_type': 'Чем вы занимаетесь?',
             'region': 'Город или регион',
-            'lead_time_weeks': 'Срок подготовки (недели)',
+            'lead_time_weeks': 'Доставка или подготовка, недель',
         }
         help_texts = {
-            'lead_time_weeks': 'Например: 2, если доставка товара занимает две недели.',
+            'lead_time_weeks': 'Сколько времени нужно, чтобы пополнить запас.',
         }
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'Например, «Автозапчасти на Абая»'}),

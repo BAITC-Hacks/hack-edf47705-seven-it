@@ -1,11 +1,48 @@
-{% extends 'forecast/base.html' %}
-{% block title %}Каталог и спрос — Foresell{% endblock %}
-{% block breadcrumb %}Каталог{% endblock %}
+{% extends 'forecast/base.html' %}{% load static %}
+{% block title %}Каталог — Foresell{% endblock %}{% block breadcrumb %}Каталог{% endblock %}
 {% block content %}
-<div class="report-head"><div><span class="eyebrow">СПРОС · ЦЕНЫ · ОТЗЫВЫ</span><h1>Выбирайте осознанно</h1><p class="section-description">Дома, автомобили, продукты и оптовые товары — с историей и мнениями людей.</p></div>{% if is_seller %}<a class="btn btn-primary" href="{% url 'market:product_create' %}">+ Добавить товар</a>{% else %}<a class="btn btn-secondary" href="{% url 'market:catalog_excel' %}?{{ pagination_query }}">Скачать Excel</a>{% endif %}</div>
-<form class="catalog-filters card" method="get"><div class="field"><label for="search">Что ищете?</label><input id="search" type="search" name="q" value="{{ filters.q }}" placeholder="Дом, автомобиль, кофе…"></div><div class="field"><label for="kind">Категория</label><select id="kind" name="kind"><option value="">Все категории</option>{% for value,label in kinds %}<option value="{{ value }}" {% if filters.kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div><div class="field"><label for="region">Город</label><input id="region" type="text" name="region" value="{{ filters.region }}" placeholder="Например, Алматы"></div><div class="field"><label for="sort">Порядок</label><select id="sort" name="sort"><option value="">Сначала новые</option><option value="price" {% if filters.sort == 'price' %}selected{% endif %}>Сначала дешевле</option><option value="rating" {% if filters.sort == 'rating' %}selected{% endif %}>По оценкам</option><option value="interest" {% if filters.sort == 'interest' %}selected{% endif %}>Чаще сохраняют</option></select></div>{% if filters.saved %}<input type="hidden" name="saved" value="1">{% endif %}<button class="btn btn-primary">Найти</button></form>
-<div class="catalog-toolbar"><span class="muted">Найдено: {{ page.paginator.count }}</span><div class="inline-actions">{% if request.user.is_authenticated %}<a href="{% url 'market:catalog' %}?saved=1" class="text-link">Моё избранное</a>{% endif %}<a href="{% url 'market:catalog' %}" class="text-link">Сбросить фильтры</a></div></div>
-<div class="product-grid">{% for card in cards %}<article class="card product-card"><a href="{% url 'market:product' card.product.pk %}" class="product-cover cover-{{ card.product.kind }}"><span>{{ card.product.get_kind_display }}</span><strong aria-hidden="true">{% if card.product.kind == 'home' %}⌂{% elif card.product.kind == 'car' %}↗{% elif card.product.kind == 'food' %}◉{% else %}▦{% endif %}</strong>{% if card.product.is_demo %}<span class="badge badge-neutral">Демо · вымышленные данные</span>{% endif %}</a><div class="product-card-body"><span class="muted small">{{ card.product.region }}</span><h2><a href="{% url 'market:product' card.product.pk %}">{{ card.product.title }}</a></h2><div class="product-price">{{ card.product.price|floatformat:0 }} ₸ <small>/ {{ card.product.unit }}</small></div><div class="tags"><span class="badge badge-{{ card.insight.tone }}">{{ card.insight.demand }}{% if card.insight.trend != None %} · {{ card.insight.trend }}%{% endif %}</span>{% if card.insight.rating %}<span class="badge badge-neutral">★ {{ card.insight.rating }} · {{ card.insight.review_count }} отзывов</span>{% else %}<span class="small muted">Пока без отзывов</span>{% endif %}</div>{% if card.insight.restock_soon %}<p class="stock-note">При текущем темпе запаса примерно на {{ card.insight.days_left }} дн.</p>{% endif %}<a class="text-link product-open" href="{% url 'market:product' card.product.pk %}">Посмотреть данные и отзывы →</a></div></article>{% empty %}<div class="card empty-state"><h2>Пока ничего не найдено</h2><p>Попробуйте другую категорию или добавьте первый товар из аккаунта продавца.</p></div>{% endfor %}</div>
+<header class="page-heading catalog-heading">
+  <div><span class="section-kicker">FORESELL / ВАШ ВЫБОР</span><h1>{% if filters.saved %}Избранное{% else %}Каталог{% endif %}</h1></div>
+  <div class="compact-actions">
+    {% if is_seller %}<a class="btn btn-primary" href="{% url 'market:product_create' %}">+ Товар</a>{% endif %}
+    {% if request.user.is_authenticated %}<details class="tools-menu" data-popover><summary>Ещё <span aria-hidden="true">···</span></summary><div class="tools-panel">
+      <a href="{% url 'market:catalog' %}?saved=1">Избранное</a>
+    </div></details>{% endif %}
+  </div>
+</header>
+{% include 'market/includes/demo_notice.html' %}
+<form class="catalog-search" method="get">
+  <div class="search-row"><label class="sr-only" for="search">Поиск по каталогу</label><input id="search" type="search" name="q" value="{{ filters.q }}" placeholder="Товар, машина или дом"><button class="btn btn-primary" type="submit" aria-label="Найти"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></button></div>
+  {% if filters.kind %}<input type="hidden" name="kind" value="{{ filters.kind }}">{% endif %}
+  {% if filters.saved %}<input type="hidden" name="saved" value="1">{% endif %}
+  <details class="disclosure filter-disclosure"{% if filters.region or filters.sort %} open{% endif %}>
+    <summary>Фильтры{% if filters.region or filters.sort %}<span class="muted small">Выбраны</span>{% endif %}</summary>
+    <div class="disclosure-body filter-fields"><div class="field"><label for="region">Город</label><input id="region" type="text" name="region" value="{{ filters.region }}" placeholder="Любой город"></div><div class="field"><label for="sort">Показывать сначала</label><select id="sort" name="sort"><option value="">Новые</option><option value="price" {% if filters.sort == 'price' %}selected{% endif %}>Дешевле</option><option value="rating" {% if filters.sort == 'rating' %}selected{% endif %}>С высокой оценкой</option><option value="interest" {% if filters.sort == 'interest' %}selected{% endif %}>Чаще сохраняют</option></select></div><button class="btn btn-secondary" type="submit">Применить</button></div>
+  </details>
+</form>
+<nav class="category-chips" aria-label="Категория товара">{% for category in category_links %}<a href="?{{ category.query }}" class="category-chip{% if category.selected %} selected{% endif %}"{% if category.selected %} aria-current="page"{% endif %}>{{ category.label }}</a>{% endfor %}</nav>
+<div class="catalog-toolbar"><span class="muted small">{{ page.paginator.count }} предложений{% if demo_mode %} · демо{% endif %}</span><div class="demand-legend" aria-label="Цвет спроса"><span class="signal-up"><i class="signal-light" aria-hidden="true"></i>Растёт</span><span class="signal-steady"><i class="signal-light" aria-hidden="true"></i>Стабилен</span><span class="signal-down"><i class="signal-light" aria-hidden="true"></i>Падает</span></div>{% if filters.q or filters.kind or filters.region or filters.sort or filters.saved %}<a href="{% url 'market:catalog' %}" class="text-link">Сбросить</a>{% endif %}</div>
+<div class="product-grid compact-catalog expressive-catalog">
+{% for card in cards %}
+  <article class="card product-card signal-{{ card.display.signal.state }}">
+    <a class="catalog-card-link" href="{% url 'market:product' card.product.pk %}">
+      <div class="product-cover cover-{{ card.product.kind }}{% if card.product.image_path %} product-cover-photo{% endif %}">
+        {% if card.product.image_path %}<img src="{% static card.product.image_path %}" alt="{{ card.display.title }}" loading="lazy" decoding="async" width="720" height="480">{% else %}<strong aria-hidden="true">{% if card.product.kind == 'home' %}⌂{% elif card.product.kind == 'car' %}↗{% else %}▦{% endif %}</strong>{% endif %}
+        {% if demo_mode or card.product.is_demo %}<span class="badge badge-neutral cover-label">Демо</span>{% elif card.product.is_reference %}<span class="badge badge-neutral cover-label">Обзор</span>{% endif %}<span class="cover-open" aria-hidden="true">↗</span>
+      </div>
+      <div class="product-card-body">
+        <h2>{{ card.display.title }}</h2>
+        <p class="card-key-facts">{{ card.display.preview }}</p>
+        {% if card.display.seller_name %}<p class="card-seller">{{ card.display.seller_name }}{% if card.display.demo_seller %} · демо{% endif %}</p>{% endif %}
+        {% if card.display.price != None %}<p class="card-price">{{ card.display.price|floatformat:'0g' }} ₸{% if demo_mode %} <small>демо</small>{% endif %}</p>{% else %}<p class="card-price price-missing">Цена уточняется</p>{% endif %}
+        {% include 'market/includes/demand_signal.html' with signal=card.display.signal %}
+        {% if demo_mode %}<span class="card-rating">★ {{ card.display.demo.rating }} <span class="muted">· 10 демо-отзывов</span></span>{% elif card.insight.rating %}<span class="card-rating">★ {{ card.insight.rating }} <span class="muted">({{ card.insight.review_count }})</span></span>{% endif %}
+      </div>
+    </a>
+  </article>
+{% empty %}
+  <div class="card empty-state"><h2>{% if filters.saved %}Здесь будут сохранённые товары{% else %}Ничего не найдено{% endif %}</h2><p>{% if filters.saved %}Откройте товар и нажмите «Сохранить».{% else %}Попробуйте другой запрос или сбросьте фильтры.{% endif %}</p><a class="btn btn-secondary" href="{% url 'market:catalog' %}">Весь каталог</a></div>
+{% endfor %}
+</div>
 {% if page.has_other_pages %}<nav class="pagination" aria-label="Страницы каталога">{% if page.has_previous %}<a class="btn btn-secondary" href="?{{ pagination_query }}&page={{ page.previous_page_number }}">← Назад</a>{% endif %}<span>{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn btn-secondary" href="?{{ pagination_query }}&page={{ page.next_page_number }}">Далее →</a>{% endif %}</nav>{% endif %}
-<p class="disclaimer">Спрос рассчитан по заполненным продавцом дням. Данные описывают эти предложения и не представляют весь рынок. Демонстрационные карточки отмечены отдельно.</p>
 {% endblock %}

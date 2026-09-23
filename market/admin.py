@@ -4,11 +4,11 @@ from .models import Observation, Product, Profile, Review
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['title', 'kind', 'seller', 'price', 'stock', 'is_demo', 'is_published']
-    list_filter = ['kind', 'is_published', 'is_demo']
+    list_display = ['title', 'kind', 'seller', 'price', 'stock', 'is_demo', 'is_reference', 'is_published']
+    list_filter = ['kind', 'is_published', 'is_demo', 'is_reference']
     search_fields = ['title', 'region', 'seller__username']
     list_select_related = ['seller']
-    readonly_fields = ['demo_key']
+    readonly_fields = ['demo_key', 'photo_key', 'brief']
 
     def get_readonly_fields(self, request, obj=None):
         fields = super().get_readonly_fields(request, obj)

@@ -1,4 +1,19 @@
-{% extends 'forecast/base.html' %}
+{% extends 'market/auth_base.html' %}
 {% block title %}Вход — Foresell{% endblock %}
-{% block breadcrumb %}Вход{% endblock %}
-{% block content %}<section class="card account-form"><span class="eyebrow">ВАШ ЛИЧНЫЙ КАБИНЕТ</span><h1>С возвращением</h1><p class="section-description">Войдите, чтобы сохранять товары, писать отзывы и вести учёт денег.</p><form method="post">{% csrf_token %}{% include 'market/includes/fields.html' %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button class="btn btn-primary" type="submit">Войти</button></form><p class="section-description">Первый раз здесь? <a href="{% url 'market:register' %}">Создать аккаунт</a></p></section>{% endblock %}
+{% block auth_content %}
+<section class="auth-card" aria-labelledby="auth-title">
+  <header class="auth-card-heading">
+    <h1 id="auth-title">Вход</h1>
+    <p>Рады видеть вас в Foresell</p>
+  </header>
+  <form method="post" class="auth-form" data-busy="Входим…">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="auth-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% include 'market/includes/auth_field.html' with field=form.username icon='user' %}
+    {% include 'market/includes/auth_field.html' with field=form.password icon='lock' password=True %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="auth-submit" type="submit">Войти</button>
+  </form>
+  <p class="auth-switch">Нет аккаунта? <a href="{% url 'market:register' %}">Зарегистрироваться</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+<div class="auth-field{% if field.errors %} has-error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  <div class="auth-input-line">
+    <svg class="icon auth-field-icon" aria-hidden="true"><use href="#auth-{{ icon }}"/></svg>
+    {{ field }}
+    {% if password %}
+    <button class="auth-password-toggle" type="button" data-password-toggle="{{ field.id_for_label }}" aria-controls="{{ field.id_for_label }}" aria-label="Показать пароль: {{ field.label }}" aria-pressed="false" hidden>
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#auth-eye"/><path class="auth-eye-slash" d="m3 3 18 18"/></svg>
+    </button>
+    {% endif %}
+  </div>
+  {% if field.help_text %}
+    {% if password %}
+    <details class="auth-help auth-password-help" id="{{ field.auto_id }}_helptext"{% if field.errors %} open{% endif %}>
+      <summary>Каким должен быть пароль?</summary>
+      {{ field.help_text|safe }}
+    </details>
+    {% else %}<div class="auth-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>{% endif %}
+  {% endif %}
+  {% if field.errors %}<div class="auth-field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+</div>

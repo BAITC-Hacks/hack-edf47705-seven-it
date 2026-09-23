@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -24,19 +24,25 @@ class Product(models.Model):
         CAR = 'car', 'Автомобили'
         FOOD = 'food', 'Продукты'
         GOODS = 'goods', 'Товары и опт'
+        ELECTRONICS = 'electronics', 'Электроника'
 
     seller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name='products', verbose_name='Продавец')
     title = models.CharField('Название', max_length=160)
     kind = models.CharField('Категория', max_length=12, choices=Kind.choices)
     description = models.TextField('Описание', max_length=5000)
     region = models.CharField('Город или регион', max_length=100)
-    price = models.DecimalField('Цена за единицу, ₸', max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    price = models.DecimalField('Цена за единицу, ₸', max_digits=14, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(Decimal('0.01'))])
     stock = models.PositiveIntegerField('Остаток, единиц', null=True, blank=True, validators=[MaxValueValidator(10000000)])
     unit = models.CharField('Единица измерения', max_length=20, default='шт.')
     lead_days = models.PositiveSmallIntegerField('Срок пополнения, дней', default=7, validators=[MaxValueValidator(365)])
     is_published = models.BooleanField('Опубликован', default=True)
     is_demo = models.BooleanField('Демонстрационный пример', default=False)
     demo_key = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
+    is_reference = models.BooleanField('Обзорная карточка', default=False)
+    photo_key = models.CharField(max_length=60, unique=True, null=True, blank=True, editable=False)
+    image_path = models.CharField('Фото из каталога', max_length=250, blank=True,
+        validators=[RegexValidator(r'^catalog-photos/[a-z0-9-]+\.jpg$', 'Укажите файл catalog-photos/имя.jpg.')])
+    brief = models.JSONField('Характеристики и разбор', default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

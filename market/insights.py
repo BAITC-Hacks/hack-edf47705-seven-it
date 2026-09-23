@@ -25,7 +25,7 @@ def product_insights(product, today=None):
     days_left = ceil(product.stock / average) if product.stock is not None and average > 0 and len(recent) >= 7 and not stale else None
     forecast = price_change = None
     price_rows = [row for row in observations if row.date >= today - timedelta(days=179)]
-    if len(price_rows) >= 6 and (price_rows[-1].date - price_rows[0].date).days >= 30 and not stale:
+    if product.price is not None and len(price_rows) >= 6 and (price_rows[-1].date - price_rows[0].date).days >= 30 and not stale:
         xs = [(row.date - price_rows[0].date).days for row in price_rows]
         ys = [float(row.price) for row in price_rows]
         mean_x, mean_y = sum(xs) / len(xs), sum(ys) / len(ys)

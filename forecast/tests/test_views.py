@@ -9,9 +9,21 @@ from forecast.models import Business, Dataset
 
 
 class ViewsTests(TestCase):
-    def test_index_renders(self):
+    def test_index_shows_example_forecast_on_demo_data(self):
         response = self.client.get(reverse('index'))
-        self.assertContains(response, 'Открыть демо')
+        self.assertContains(response, 'ПРИМЕР ПРОГНОЗА')
+        self.assertContains(response, 'Зимние шины')
+        self.assertContains(response, 'заказать до 11.10.2026')
+        self.assertContains(response, 'class="example-fact"')
+        dataset = Dataset.objects.get()
+        self.assertTrue(dataset.is_demo)
+        self.assertContains(response, reverse('dashboard', args=[dataset.id]))
+
+    def test_demo_dataset_is_reused(self):
+        self.client.get(reverse('index'))
+        self.client.post(reverse('demo'))
+        self.client.post(reverse('demo'))
+        self.assertEqual(Dataset.objects.count(), 1)
 
     def test_demo_creates_dataset_and_dashboard_shows_recommendations(self):
         response = self.client.post(reverse('demo'), follow=True)
@@ -91,4 +103,4 @@ class ViewsTests(TestCase):
         dataset.refresh_from_db()
         self.assertEqual(dataset.recommendations_source, Dataset.SOURCE_AI)
         self.assertContains(response, 'Готовьтесь к зиме.')
-        self.assertContains(response, 'ИИ · Claude')
+        self.assertContains(response, 'Ответ ИИ')

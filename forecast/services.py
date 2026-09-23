@@ -5,7 +5,8 @@ from django.utils import timezone
 
 from .ai import AiUnavailable, ai_recommendations
 from .analytics import analyze_records
-from .models import Dataset, Record
+from .demo_data import DEMO_BUSINESS, DEMO_DATASET_NAME, demo_rows
+from .models import Business, Dataset, Record
 from .recommendations import rule_recommendations
 
 
@@ -22,6 +23,19 @@ def create_dataset(business, name, rows):
         batch_size=2000,
     )
     refresh_recommendations(dataset, use_ai=False)
+    return dataset
+
+
+def get_demo_dataset():
+    """The shared demo dataset: reused if it exists, created on first use."""
+    dataset = Dataset.objects.filter(is_demo=True).select_related('business').order_by('-created_at').first()
+    if dataset:
+        return dataset
+    with transaction.atomic():
+        business = Business.objects.create(**DEMO_BUSINESS)
+        dataset = create_dataset(business, DEMO_DATASET_NAME, demo_rows())
+        dataset.is_demo = True
+        dataset.save(update_fields=['is_demo'])
     return dataset
 
 

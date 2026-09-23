@@ -1,0 +1,9 @@
+<details class="card disclosure"><summary>Подробнее о товаре и характеристиках</summary><div class="disclosure-body">
+  <p>{{ product.description|linebreaksbr }}</p>
+  <p class="help">{{ product.brief.identification }}</p>
+  <dl class="specification-list">{% for label,value in product.brief.specifications.items %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+  <h3>Почему может подойти</h3><ul class="plain-list">{% for reason in product.brief.pros %}<li>{{ reason }}</li>{% endfor %}</ul>
+  <h3>Что может не подойти</h3><ul class="plain-list">{% for reason in product.brief.cons %}<li>{{ reason }}</li>{% endfor %}</ul>
+  <div class="short-conclusion"><h3>Вывод</h3><p>{{ product.brief.verdict }}</p></div>
+  <details class="inline-details"><summary>Источники</summary><p class="help">{{ product.brief.basis }} Разбор от {{ product.brief.reviewed_at }}.</p>{% if product.brief.sources %}<ul class="plain-list">{% for source in product.brief.sources %}<li><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }} ↗</a></li>{% endfor %}</ul>{% else %}<p class="help">Точная модель или объект не установлены. Описание основано на фото.</p>{% endif %}</details>
+</div></details>

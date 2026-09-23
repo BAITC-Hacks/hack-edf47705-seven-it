@@ -1,76 +1,52 @@
-{% extends 'forecast/base.html' %}
-{% load static %}
-{% block title %}{{ business.name }} — Foresell{% endblock %}
-{% block breadcrumb %}Прогноз спроса{% endblock %}
+{% extends 'forecast/base.html' %}{% load static %}
+{% block title %}{{ business.name }} — Foresell{% endblock %}{% block breadcrumb %}Прогноз{% endblock %}
 {% block content %}
-<div class="report-head">
-  <div>
-    <span class="eyebrow">ОТ ПРОДАЖ — К ПЛАНУ ДЕЙСТВИЙ</span>
-    <h1>{{ business.name }}</h1>
-    <div class="report-meta"><span>{{ business.region }}</span><span>{{ business.get_business_type_display }}</span><span>Данные до {{ report.as_of|date:"d.m.Y" }}</span><span>Подготовка: {{ business.lead_time_weeks }} нед.</span></div>
-  </div>
-  <a class="btn btn-secondary" href="{% url 'index' %}#upload"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Новый анализ</a>
-</div>
-<div class="tiles">
-  <div class="card tile"><svg class="icon" aria-hidden="true"><use href="#i-up"/></svg><div class="label">Спрос растёт</div><div class="value">{{ report.growing|length }}</div><div class="sub">из {{ report.insights|length }} категорий</div></div>
-  <div class="card tile tile-decline"><svg class="icon" aria-hidden="true"><use href="#i-down"/></svg><div class="label">Спрос падает</div><div class="value">{{ report.falling|length }}</div><div class="sub">из {{ report.insights|length }} категорий</div></div>
-  <div class="card tile tile-featured"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div class="label">Ближайший срок подготовки</div>{% if next_deadline %}<div class="value">{{ next_deadline_label }}</div><div class="sub">{{ next_deadline.category }}</div>{% else %}<div class="value">—</div><div class="sub">Сезонных пиков впереди не видно</div>{% endif %}</div>
-</div>
-
-<section class="card report-section" id="forecast" aria-labelledby="forecast-heading">
+<header class="page-heading"><div><h1>{{ business.name }}</h1><p class="muted small">{% if dataset.is_demo %}Демо · {% endif %}По продажам до {{ report.as_of|date:"d.m.Y" }}</p></div><a class="btn btn-secondary" href="{% url 'index' %}#upload">Новый расчёт</a></header>
+{% if next_deadline %}<div class="action-notice"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><p><strong>{{ next_deadline.category }}</strong><span>Подготовиться до {{ next_deadline_label }}</span></p></div>{% endif %}
+<section class="action-section" id="recommendations" aria-labelledby="recommendations-heading">
+  <div class="section-heading"><h2 id="recommendations-heading">Что сделать</h2><span class="badge badge-neutral">{% if dataset.recommendations_source == 'ai' %}Ответ ИИ{% else %}По вашим данным{% endif %}</span></div>
+  {% if items %}
+  <div class="recs">{% for item in items|slice:":3" %}{% include 'forecast/includes/action_card.html' %}{% endfor %}</div>
+  {% if items|length > 3 %}<details class="card disclosure"><summary>Остальные рекомендации</summary><div class="disclosure-body recs">{% for item in items|slice:"3:" %}{% include 'forecast/includes/action_card.html' %}{% endfor %}</div></details>{% endif %}
+  {% else %}<div class="card empty-state"><h3>Можно сохранить текущий план</h3><p>Заметных изменений спроса пока нет.</p></div>{% endif %}
+</section>
+<details class="card disclosure"><summary>Объяснение и помощь ИИ</summary><div class="disclosure-body">
+  {% if summary %}<p>{{ summary }}</p>{% endif %}
+  {% if dataset.recommendations_note %}<p class="note" role="status">{{ dataset.recommendations_note }}</p>{% endif %}
+  <form method="post" action="{% url 'recommend' dataset.id %}" id="ai-form">{% csrf_token %}<button class="btn btn-secondary" type="submit" id="ai-button">{% if dataset.recommendations_source == 'ai' %}Обновить объяснение{% else %}Объяснить с ИИ{% endif %}</button></form>
+  <p class="help">Расчёт основан на истории продаж. Он не учитывает новости и изменения рынка.</p>
+</div></details>
+<details class="card disclosure" id="forecast"><summary>Посмотреть график</summary><div class="disclosure-body">
   <div class="chart-top">
-    <div><h2 id="forecast-heading">Прогноз спроса</h2><div class="chart-key"><span><i></i>История продаж</span><span><i class="dashed"></i>Прогноз на 3 месяца</span></div></div>
+    <div><h2 id="forecast-heading">Продажи по месяцам</h2><div class="chart-key"><span><i></i>Было</span><span><i class="dashed"></i>Ожидается</span></div></div>
     <div class="chart-select"><label for="category-select">Категория</label><select id="category-select">{% for row in rows %}<option value="{{ row.insight.category }}">{{ row.insight.category }}</option>{% endfor %}</select></div>
   </div>
-  <div class="chart-scroll" tabindex="0" role="region" aria-label="График спроса. На узком экране прокрутите горизонтально.">
+  <div class="chart-scroll" tabindex="0" role="region" aria-label="График спроса. История и ожидаемые продажи.">
     <svg id="demand-chart" class="demand-chart" viewBox="0 0 960 280" role="img" aria-labelledby="chart-title chart-description"><title id="chart-title">Прогноз спроса</title><desc id="chart-description">Выберите категорию для просмотра истории и прогноза.</desc></svg>
   </div>
   <noscript><p class="note">Включите JavaScript, чтобы посмотреть график. Итоги по всем категориям доступны в таблице ниже.</p></noscript>
   <div class="chart-caption"><span>Количество, {{ unit }} · данные по месяцам</span><span id="chart-current" aria-live="polite"></span></div>
   <div class="chart-facts" id="chart-facts" aria-live="polite"></div>
-  <p class="disclaimer">Прогноз учитывает историю ваших продаж и сезонность. Внешние события в расчёт не входят.</p>
-</section>
 
-<section class="card report-section" aria-labelledby="categories-heading">
-  <div class="section-heading"><div><h2 id="categories-heading">Спрос по категориям</h2><p class="section-description" style="margin-bottom:0">Выберите категорию, чтобы увидеть её на графике. Сравнение — с теми же месяцами прошлого года.</p></div><span class="badge badge-neutral">{{ report.insights|length }} категорий</span></div>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Категории и прогнозы">
-    <table>
+</div></details>
+<details class="card disclosure"><summary>Все цифры по товарам</summary><div class="disclosure-body"><div class="table-wrap" tabindex="0" role="region" aria-label="Категории и прогнозы">
+    <table class="mobile-table">
       <thead><tr><th scope="col">Категория</th><th scope="col">Тренд</th><th class="num" scope="col">Прогноз, 3 мес.</th><th class="num" scope="col">К прошлому году</th><th scope="col">Сезонный пик</th><th scope="col">Готовиться до</th></tr></thead>
       <tbody>
         {% for row in rows %}
         <tr data-category="{{ row.insight.category }}">
-          <td><button class="category-button" type="button" aria-pressed="false" aria-controls="demand-chart">{{ row.insight.category }}</button></td>
-          <td><span class="badge {% if row.insight.direction == 'growing' %}badge-good{% elif row.insight.direction == 'falling' %}badge-bad{% else %}badge-neutral{% endif %}">{% if row.insight.direction == 'growing' %}↗{% elif row.insight.direction == 'falling' %}↘{% else %}→{% endif %} {{ row.direction_label }}{% if row.insight.trend_pct is not None %} {{ row.insight.trend_pct|floatformat:0 }}%{% endif %}</span></td>
-          <td class="num">{{ row.insight.forecast_total|floatformat:0 }}</td>
-          <td class="num">{% if row.insight.forecast_vs_last_year_pct is not None %}{{ row.insight.forecast_vs_last_year_pct|floatformat:0 }}%{% else %}—{% endif %}</td>
-          <td>{{ row.peak_label|default:"—" }}</td>
-          <td>{% if row.order_by_label %}<span {% if row.order_by_overdue %}class="overdue" title="Срок уже прошёл"{% endif %}>{{ row.order_by_label }}{% if row.order_by_overdue %} · прошёл{% endif %}</span>{% else %}—{% endif %}</td>
+          <td data-label="Товар"><button class="category-button" type="button" aria-pressed="false" aria-controls="demand-chart">{{ row.insight.category }}</button></td>
+          <td data-label="Спрос"><span class="badge {% if row.insight.direction == 'growing' %}badge-good{% elif row.insight.direction == 'falling' %}badge-bad{% else %}badge-neutral{% endif %}">{% if row.insight.direction == 'growing' %}↗{% elif row.insight.direction == 'falling' %}↘{% else %}→{% endif %} {{ row.direction_label }}{% if row.insight.trend_pct is not None %} {{ row.insight.trend_pct|floatformat:0 }}%{% endif %}</span></td>
+          <td class="num" data-label="На 3 месяца">{{ row.insight.forecast_total|floatformat:0 }}</td>
+          <td class="num" data-label="К прошлому году">{% if row.insight.forecast_vs_last_year_pct is not None %}{{ row.insight.forecast_vs_last_year_pct|floatformat:0 }}%{% else %}—{% endif %}</td>
+          <td data-label="Пик спроса">{{ row.peak_label|default:"—" }}</td>
+          <td data-label="Подготовиться до">{% if row.order_by_label %}<span {% if row.order_by_overdue %}class="overdue" title="Срок уже прошёл"{% endif %}>{{ row.order_by_label }}{% if row.order_by_overdue %} · прошёл{% endif %}</span>{% else %}—{% endif %}</td>
         </tr>
         {% empty %}<tr><td colspan="6">Пока недостаточно данных для прогноза.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
-</section>
-
-<section class="recommendations" id="recommendations" aria-labelledby="recommendations-heading">
-  <div class="section-heading">
-    <div><h2 id="recommendations-heading"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>Ваш следующий шаг</h2><div class="recommendation-source">{% if dataset.recommendations_source == 'ai' %}<span class="badge badge-accent">ИИ · Claude</span>{% else %}<span class="badge badge-neutral">Рекомендации по правилам</span>{% endif %}</div></div>
-    <form method="post" action="{% url 'recommend' dataset.id %}" id="ai-form">{% csrf_token %}<button class="btn btn-primary" type="submit" id="ai-button"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>{% if dataset.recommendations_source == 'ai' %}Обновить рекомендации ИИ{% else %}Получить рекомендации ИИ{% endif %}</button></form>
-  </div>
-  {% if dataset.recommendations_note %}<p class="note" role="status">{{ dataset.recommendations_note }}</p>{% endif %}
-  {% if summary %}<p class="summary">{{ summary }}</p>{% endif %}
-  {% if items %}
-  <div class="recs">
-    {% for item in items %}
-    <article class="rec">
-      <span class="icon-tile {{ item.icon }}"><svg class="icon" aria-hidden="true"><use href="{% if item.icon == 'up' %}#i-up{% elif item.icon == 'down' %}#i-down{% else %}#i-clock{% endif %}"/></svg></span>
-      <div><h3>{{ item.title }}</h3><p>{{ item.reason }}</p><div class="tags"><span class="badge {% if item.icon == 'up' %}badge-good{% elif item.icon == 'down' %}badge-bad{% else %}badge-accent{% endif %}">{{ item.action_label }}</span>{% if item.deadline_label %}<span class="badge badge-warn">до {{ item.deadline_label }}</span>{% endif %}<span class="badge badge-neutral">Уверенность: {{ item.confidence_label }}</span></div></div>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}<p class="empty-state">Заметных изменений спроса и сезонных пиков в ближайшие месяцы нет. Можно держать текущий уровень.</p>{% endif %}
-  <p class="disclaimer">Рекомендации помогают планировать закупки. Сопоставьте их с ситуацией в вашем бизнесе перед принятием решения.</p>
-</section>
+</div></details>
 {{ chart_data|json_script:"chart-data" }}
 {% endblock %}
 {% block scripts %}<script src="{% static 'forecast/dashboard.js' %}" defer></script>{% endblock %}

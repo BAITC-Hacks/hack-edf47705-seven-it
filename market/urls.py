@@ -1,12 +1,13 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
+from .forms import LoginForm
 
 app_name = 'market'
 urlpatterns = [
     path('', views.catalog, name='catalog'),
     path('register/', views.register, name='register'),
-    path('login/', auth_views.LoginView.as_view(template_name='market/login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(template_name='market/login.html', authentication_form=LoginForm), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('products/<int:pk>/', views.product_detail, name='product'),
     path('products/<int:pk>/favorite/', views.favorite, name='favorite'),
@@ -21,5 +22,4 @@ urlpatterns = [
     path('finances/<int:pk>/edit/', views.ledger_edit, name='ledger_edit'),
     path('finances/excel/', views.ledger_excel, name='ledger_excel'),
     path('support/', views.support, name='support'),
-    path('excel/', views.catalog_excel, name='catalog_excel'),
 ]

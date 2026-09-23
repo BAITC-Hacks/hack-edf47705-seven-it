@@ -1,0 +1,9 @@
+<article class="rec">
+  <span class="icon-tile {{ item.icon }}"><svg class="icon" aria-hidden="true"><use href="{% if item.icon == 'up' %}#i-up{% elif item.icon == 'down' %}#i-down{% else %}#i-clock{% endif %}"/></svg></span>
+  <div><span class="badge {% if item.icon == 'up' %}badge-good{% elif item.icon == 'down' %}badge-warn{% else %}badge-neutral{% endif %}">{% if item.action == 'increase' %}Заказать больше{% elif item.action == 'decrease' %}Сократить закупку{% elif item.action == 'prepare_peak' %}Подготовиться к росту{% else %}Оставить как есть{% endif %}</span>
+    <h3>{{ item.title }}</h3>
+    {% if item.deadline_label %}<p class="action-deadline">До {{ item.deadline_label }}</p>{% endif %}
+    {% if item.confidence == 'low' %}<p class="help">Пока мало истории для точного прогноза.</p>{% endif %}
+    <details class="inline-details"><summary>Почему?</summary><p>{{ item.reason }}</p><p class="help">Уверенность: {{ item.confidence_label }}</p></details>
+  </div>
+</article>

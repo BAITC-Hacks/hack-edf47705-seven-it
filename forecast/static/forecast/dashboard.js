@@ -55,7 +55,10 @@
     const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue / 4)));
     const interval = Math.ceil(maxValue / 4 / magnitude) * magnitude;
     const ceiling = interval * 4;
-    const left = 64, right = 932, top = 24, bottom = 235;
+    const width = Math.max(240, Math.min(960, chart.parentElement.clientWidth || document.documentElement.clientWidth - 72));
+    chart.setAttribute('viewBox', '0 0 ' + width + ' 280');
+    const left = width < 520 ? 48 : 64, right = width - 18, top = 24, bottom = 235;
+    const axisFormat = new Intl.NumberFormat('ru-RU', { notation: width < 520 ? 'compact' : 'standard', maximumFractionDigits: 0 });
     const x = (index) => left + index / Math.max(1, points.length - 1) * (right - left);
     const y = (value) => bottom - value / ceiling * (bottom - top);
     const historyEnd = series.history.length - 1;
@@ -66,9 +69,9 @@
     for (let tick = 0; tick <= 4; tick++) {
       const value = interval * tick;
       chart.append(svgElement('line', { x1: left, x2: right, y1: y(value), y2: y(value), class: 'chart-grid' }));
-      chart.append(svgElement('text', { x: left - 12, y: y(value) + 4, 'text-anchor': 'end', class: 'chart-label' }, format.format(value)));
+      chart.append(svgElement('text', { x: left - 10, y: y(value) + 4, 'text-anchor': 'end', class: 'chart-label' }, axisFormat.format(value)));
     }
-    const labelStep = Math.max(1, Math.ceil((points.length - 1) / 7));
+    const labelStep = Math.max(1, Math.ceil((points.length - 1) / (width < 520 ? 3 : 7)));
     points.forEach(([month], index) => {
       if ((index % labelStep === 0 && index < points.length - 1 - labelStep / 2) || index === points.length - 1) {
         chart.append(svgElement('text', { x: x(index), y: bottom + 27, 'text-anchor': index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle', class: 'chart-label' }, monthLabel(month)));
@@ -92,10 +95,16 @@
   }
   select.addEventListener('change', () => render(select.value));
   rows.forEach((row) => row.addEventListener('click', () => {
+    document.getElementById('forecast').open = true;
     render(row.dataset.category);
     document.getElementById('forecast').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   }));
   if (rows.length) render(rows[0].dataset.category);
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      if (chart.parentElement.clientWidth > 0) render(select.value);
+    }).observe(chart.parentElement);
+  }
   const form = document.getElementById('ai-form');
   const button = document.getElementById('ai-button');
   const originalButton = button.innerHTML;

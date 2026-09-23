@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -8,8 +8,43 @@ from .imports import parse_product_history
 from forecast.csv_import import CsvImportError
 
 
+class LoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].label = 'Имя пользователя'
+        self.fields['username'].widget.attrs.update({
+            'placeholder': 'Ваш логин', 'autocomplete': 'username',
+            'autocapitalize': 'none', 'spellcheck': 'false',
+        })
+        self.fields['username'].widget.attrs.pop('autofocus', None)
+        self.fields['password'].widget.attrs.update({
+            'placeholder': 'Введите пароль', 'autocomplete': 'current-password',
+        })
+
+
 class RegistrationForm(UserCreationForm):
-    role = forms.ChoiceField(label='Я хочу пользоваться как', choices=Profile.Role.choices)
+    role = forms.ChoiceField(
+        label='Я хочу пользоваться как', choices=Profile.Role.choices,
+        widget=forms.RadioSelect, initial=Profile.Role.BUYER,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].label = 'Имя пользователя'
+        self.fields['username'].help_text = 'Буквы, цифры и символы @ . + - _'
+        self.fields['username'].widget.attrs.update({
+            'placeholder': 'Например, alex', 'autocomplete': 'username',
+            'autocapitalize': 'none', 'spellcheck': 'false',
+        })
+        self.fields['username'].widget.attrs.pop('autofocus', None)
+        self.fields['password1'].widget.attrs.update({
+            'placeholder': 'Придумайте пароль', 'autocomplete': 'new-password',
+        })
+        self.fields['password2'].label = 'Повторите пароль'
+        self.fields['password2'].help_text = ''
+        self.fields['password2'].widget.attrs.update({
+            'placeholder': 'Введите пароль ещё раз', 'autocomplete': 'new-password',
+        })
 
     class Meta(UserCreationForm.Meta):
         model = get_user_model()
@@ -22,7 +57,7 @@ class ProductForm(forms.ModelForm):
         fields = ['title', 'kind', 'description', 'region', 'price', 'stock', 'unit', 'lead_days', 'is_published']
         widgets = {'description': forms.Textarea(attrs={'rows': 4})}
         help_texts = {'stock': 'Оставьте пустым, если остаток неизвестен.',
-                      'price': 'Все суммы в тенге. Для опта укажите цену одной выбранной единицы.'}
+                      'price': 'Сумма в тенге за одну единицу. Если цена неизвестна, оставьте поле пустым.'}
 
 
 class ObservationForm(forms.ModelForm):
@@ -52,7 +87,10 @@ class LedgerForm(forms.ModelForm):
     class Meta:
         model = LedgerEntry
         fields = ['direction', 'amount', 'date', 'category', 'note']
-        widgets = {'date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')}
+        labels = {'direction': 'Доход или расход', 'amount': 'Сумма, ₸', 'note': 'За что'}
+        widgets = {'date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+                   'amount': forms.NumberInput(attrs={'inputmode': 'decimal'}),
+                   'note': forms.TextInput(attrs={'placeholder': 'Например, продажа кофе'})}
 
     def clean_date(self):
         if self.cleaned_data['date'] > timezone.localdate():

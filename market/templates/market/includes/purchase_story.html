@@ -1,0 +1,17 @@
+<section class="purchase-story card signal-{{ display.signal.state }}" id="purchases" aria-labelledby="purchases-title">
+  <div class="story-header"><div><span class="section-kicker">КАК МЕНЯЕТСЯ ИНТЕРЕС</span><h2 id="purchases-title">Покупки <span class="demo-pill">Демо</span></h2></div><span class="story-period">8 недель</span></div>
+  <div class="purchase-total"><strong>{{ display.demo.total }} <small>{{ display.demo.unit }}</small></strong><span class="trend-chip">{{ display.signal.symbol }} {{ display.demo.trend_label }}</span></div>
+  <p class="story-caption">За последние 4 недели · {{ display.demo.period }}</p>
+  <p class="sales-story-label">{{ display.demo.story }}</p>
+  <div class="purchase-chart" role="img" aria-label="Вымышленные покупки за 8 недель. За последние четыре недели: {{ display.demo.total }}. За предыдущие: {{ display.demo.previous }}. Изменение: {{ display.demo.trend_label }}.">
+    {% for week in display.demo.weeks %}<div class="purchase-week{% if week.current %} current{% endif %}{% if week.peak %} is-peak{% endif %}{% if week.drop %} is-drop{% endif %}" aria-hidden="true"><div class="week-event">{% if week.peak %}Пик{% elif week.drop %}Спад{% endif %}</div><div class="purchase-track"><div class="purchase-bar" style="--bar-height: {{ week.height }}%"><span>{{ week.count }}</span></div></div><span class="week-label">{{ week.label }}</span></div>{% endfor %}
+  </div>
+  <div class="chart-legend"><span><i class="previous-swatch" aria-hidden="true"></i>Предыдущие 4 недели</span><span><i class="current-swatch" aria-hidden="true"></i>Последние 4 недели</span></div>
+  {% if display.demo.sharp_fall %}<p class="sales-event"><span aria-hidden="true">↘</span>Резкий спад за неделю: {{ display.demo.fall_from }} → {{ display.demo.fall_to }} {{ display.demo.unit }} <span class="muted">· с {{ display.demo.fall_date }}</span></p>{% endif %}
+  <details class="inline-details calculation-details"><summary>Как считается цвет</summary><p>Сравниваем покупки за два периода по 4 недели: {{ display.demo.previous }} → {{ display.demo.total }}. Рост от 10% — зелёный, падение от 10% — красный. Между ними — жёлтый.</p><p>Это демонстрационный сценарий, а не рыночная статистика или прогноз цены.</p><div class="table-wrap"><table class="mobile-table"><caption class="sr-only">Вымышленные покупки по неделям</caption><thead><tr><th>Неделя</th><th>Покупки, {{ display.demo.unit }}</th></tr></thead><tbody>{% for week in display.demo.weeks %}<tr><td data-label="Неделя">{{ week.period }}</td><td data-label="Покупки">{{ week.count }}</td></tr>{% endfor %}</tbody></table></div></details>
+</section>
+<section class="demo-community" aria-labelledby="demo-reviews-title">
+  <div class="story-header"><div><span class="section-kicker">МНЕНИЯ О ТОВАРЕ</span><h2 id="demo-reviews-title">Отзывы <span class="demo-pill">Демо</span></h2></div><div class="community-rating"><strong>★ {{ display.demo.rating }}</strong><span>10 вымышленных участников</span></div></div>
+  <div class="demo-review-grid">{% for review in display.demo.comments|slice:':3' %}{% include 'market/includes/demo_review.html' %}{% endfor %}</div>
+  <details class="more-demo-reviews"><summary>Ещё 7 отзывов <span aria-hidden="true">↓</span></summary><div class="demo-review-grid">{% for review in display.demo.comments|slice:'3:' %}{% include 'market/includes/demo_review.html' %}{% endfor %}</div></details>
+</section>

@@ -1,12 +1,73 @@
 {% extends 'forecast/base.html' %}{% load static %}
-{% block title %}{{ product.title }} — Foresell{% endblock %}{% block breadcrumb %}Карточка товара{% endblock %}
+{% block title %}{{ display.title }} — Foresell{% endblock %}{% block breadcrumb %}Товар{% endblock %}
 {% block content %}
-<a class="text-link" href="{% url 'market:catalog' %}">← В каталог</a>
-<div class="report-head product-heading"><div><span class="eyebrow">{{ product.get_kind_display }} · {{ product.region }}</span><h1>{{ product.title }}</h1><p class="muted">{% if product.seller %}Продавец: {{ product.seller.username }}{% else %}Пример Foresell{% endif %}{% if not product.is_published %} · Не опубликован{% endif %}</p></div><div class="inline-actions">{% if is_owner %}<a class="btn btn-secondary" href="{% url 'market:product_edit' product.pk %}">Изменить</a><a class="btn btn-secondary" href="{% url 'market:history_import' product.pk %}">История из Excel</a><a class="btn btn-primary" href="{% url 'market:observation' product.pk %}">Добавить день продаж</a>{% elif request.user.is_authenticated %}<form method="post" action="{% url 'market:favorite' product.pk %}">{% csrf_token %}<button class="btn btn-secondary">{% if favorite %}Убрать из избранного{% else %}В избранное{% endif %}</button></form>{% endif %}</div></div>
-{% if product.is_demo %}<p class="note">Демонстрационный пример. Цены и продажи вымышлены и показывают работу функций.</p>{% endif %}
-<div class="tiles"><div class="card tile"><div class="label">Текущая цена продавца</div><div class="value">{{ product.price|floatformat:0 }} ₸</div><div class="sub">за {{ product.unit }}</div></div><div class="card tile"><div class="label">Спрос по истории</div><div class="value market-value">{{ insight.demand }}</div><div class="sub">{% if insight.trend != None %}{{ insight.trend }}% к предыдущим 30 дням{% else %}Нужно от 7 заполненных дней в каждом периоде{% endif %}</div></div><div class="card tile"><div class="label">Остаток</div><div class="value">{{ product.stock|default_if_none:'—' }}</div><div class="sub">{% if insight.days_left != None %}Примерно на {{ insight.days_left }} дн. при текущем темпе{% else %}{{ product.unit }} · срок пополнения {{ product.lead_days }} дн.{% endif %}</div></div></div>
-<div class="market-columns"><section class="card"><h2>Что известно о товаре</h2><p class="product-description">{{ product.description|linebreaksbr }}</p><div class="tags"><span class="badge badge-neutral">Данные: {% if insight.as_of %}{{ insight.as_of|date:'d.m.Y' }}{% else %}истории пока нет{% endif %}</span><span class="badge badge-neutral">Заполнено {{ insight.observed_days }} из 30 дней</span></div>{% if insight.stale %}<p class="note">История отсутствует или не обновлялась больше 14 дней. Для актуальных подсказок нужны свежие данные.</p>{% endif %}</section><section class="card forecast-panel"><span class="eyebrow">ОЦЕНКА ПО ИСТОРИИ ЦЕН</span><h2>Цена через 30 дней</h2>{% if insight.forecast_price != None %}<div class="product-price">≈ {{ insight.forecast_price|floatformat:0 }} ₸</div><p>{{ insight.price_change }}% относительно текущей цены</p>{% else %}<p class="empty-state">Для расчёта нужны минимум 6 наблюдений за период от 30 дней и свежая запись.</p>{% endif %}{% if insight.restock_soon %}<p class="note">Пополнение занимает {{ product.lead_days }} дн., а запаса примерно на {{ insight.days_left }} дн. Проверьте доступность поставки.</p>{% endif %}<p class="disclaimer">Это продолжение исторического тренда, а не гарантия цены. Состояние объекта, качество, новости и другие внешние факторы не учтены.</p></section></div>
-<section class="card report-section"><div class="section-heading"><h2>История цены</h2><a class="text-link" href="{% url 'market:product_excel' product.pk %}">Скачать Excel ↗</a></div>{% if observations %}<div class="chart-scroll"><svg id="price-chart" class="demand-chart" viewBox="0 0 960 280" role="img" aria-label="История цены по датам"></svg></div><details class="file-instructions"><summary>Показать исходные данные</summary><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Цена, ₸</th><th>Продано</th></tr></thead><tbody>{% for row in observations %}<tr><td>{{ row.date|date:'d.m.Y' }}</td><td>{{ row.price }}</td><td>{{ row.sold }}</td></tr>{% endfor %}</tbody></table></div></details>{% else %}<p class="empty-state">Продавец ещё не добавил историю.</p>{% endif %}</section>
-<section class="card"><div class="section-heading"><h2>Оценки и комментарии</h2><span class="badge badge-neutral">{% if insight.rating %}★ {{ insight.rating }} / 5{% else %}Нет оценок{% endif %}</span></div><p class="section-description">Положительных: {{ insight.positive }} · Низких оценок: {{ insight.negative }} · Всего: {{ insight.review_count }}. Отзывы отражают мнение авторов; факт покупки не проверяется.</p><div class="reviews">{% for review in reviews %}<article class="review"><div class="section-heading"><strong>{{ review.author.username }}</strong><span class="badge badge-neutral">★ {{ review.rating }}/5</span></div><p>{{ review.comment|linebreaksbr }}</p><time class="small muted">{{ review.updated_at|date:'d.m.Y' }}</time></article>{% empty %}<p class="muted">Здесь ещё нет отзывов.</p>{% endfor %}</div>{% if is_owner %}<p class="disclaimer">Владелец товара не может оценивать свою карточку.</p>{% elif request.user.is_authenticated %}<form method="post" class="review-form">{% csrf_token %}{% include 'market/includes/fields.html' with form=review_form %}<button class="btn btn-primary">Сохранить мой отзыв</button></form>{% else %}<p class="section-description"><a href="{% url 'market:login' %}?next={{ request.path|urlencode }}">Войдите</a>, чтобы оставить оценку и комментарий.</p>{% endif %}</section>
+<div class="product-topline"><a class="back-link" href="{% url 'market:catalog' %}">← Каталог</a></div>
+{% include 'market/includes/demo_notice.html' %}
+
+<article class="product-focus product-showcase signal-{{ display.signal.state }}" id="product-overview">
+  <figure class="product-photo showcase-media">
+    {% if product.image_path %}<a href="{% static product.image_path %}" target="_blank" rel="noopener" aria-label="Открыть фото: {{ display.title }}"><img src="{% static product.image_path %}" alt="{{ display.title }}" width="1200" height="800" fetchpriority="high" class="photo-{{ product.kind }}"></a>{% else %}<div class="product-placeholder placeholder-{{ product.kind }}" aria-hidden="true"><svg class="icon"><use href="#i-grid"/></svg><span>{{ product.get_kind_display }}</span></div>{% endif %}
+    <div class="photo-label">{% if demo_mode or product.is_demo %}<span class="demo-pill">ДЕМО</span>{% elif product.is_reference %}<span class="photo-tag">Обзор по фото</span>{% endif %}</div>
+    {% if demo_mode and request.user.is_authenticated and product.is_published %}<form class="photo-favorite" method="post" action="{% url 'market:favorite' product.pk %}">{% csrf_token %}<button type="submit" class="{% if favorite %}is-saved{% endif %}" aria-label="{% if favorite %}Убрать из избранного{% else %}Сохранить в избранное{% endif %}" title="{% if favorite %}Убрать из избранного{% else %}Сохранить в избранное{% endif %}"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></button></form>{% endif %}
+    <figcaption><span>{% if product.kind == 'home' %}Визуализация проекта{% else %}{{ product.get_kind_display }}{% endif %}</span><span aria-hidden="true">↗</span></figcaption>
+  </figure>
+  <section class="product-lead">
+    {% include 'market/includes/demand_signal.html' with signal=display.signal %}
+    <h1>{{ display.title }}</h1>
+    <p class="product-one-line">{{ display.summary }}</p>
+    {% if display.seller_name %}<div class="seller-mini"><span class="seller-avatar" aria-hidden="true">{{ display.seller_name|first }}</span><div><strong>{{ display.seller_name }}</strong><span>{% if display.demo_seller %}Демо-продавец · {% endif %}{{ product.region }}</span></div></div>{% endif %}
+    <dl class="product-facts facts-{{ product.kind }}">{% for label,value in display.facts %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+    {% if demo_mode %}<p class="spec-note"><span class="demo-tag">Демо</span> Характеристики и цена — пример предложения.</p>{% elif product.is_reference %}<p class="spec-note">{% if product.kind == 'home' %}Параметры квартиры и адрес пока не подтверждены.{% elif product.kind == 'car' %}Данные каталога. Комплектацию автомобиля нужно сверить.{% else %}Точную модель и региональную версию нужно сверить.{% endif %}</p>{% endif %}
+    <div class="product-price-row"><p class="lead-price">{% if display.price != None %}{{ display.price|floatformat:'0g' }} <small>₸</small>{% else %}<span class="price-missing">Цена уточняется</span>{% endif %}</p>{% if demo_mode %}<span class="demo-tag">Демо-цена</span>{% endif %}</div>
+    {% if not product.is_published %}<p class="badge badge-warn">Скрыт из каталога</p>{% endif %}
+    {% if not demo_mode and insight.restock_soon %}<p class="action-notice">Запаса примерно на {{ insight.days_left }} дн. Проверьте поставку.</p>{% endif %}
+    <div class="product-primary-actions">
+      {% if demo_mode %}<a class="btn btn-primary" href="#purchases"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Посмотреть покупки</a><a class="btn btn-secondary" href="#demo-reviews-title">Отзывы · 10</a>
+      {% elif is_owner %}<a class="btn btn-primary" href="{% url 'market:history_import' product.pk %}">Добавить продажи</a><a class="btn btn-secondary" href="{% url 'market:product_edit' product.pk %}">Изменить</a>
+      {% elif request.user.is_authenticated %}<form method="post" action="{% url 'market:favorite' product.pk %}">{% csrf_token %}<button class="btn {% if favorite %}btn-secondary{% else %}btn-primary{% endif %}" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg>{% if favorite %}Убрать из избранного{% else %}Сохранить{% endif %}</button></form><a class="btn btn-secondary" href="#reviews">Отзывы{% if insight.review_count %} · {{ insight.review_count }}{% endif %}</a>
+      {% else %}<a class="btn btn-primary" href="{% url 'market:login' %}?next={{ request.path|urlencode }}">Войти и сохранить</a><a class="btn btn-secondary" href="#reviews">Отзывы</a>{% endif %}
+    </div>
+    {% if not demo_mode and product.is_demo %}<p class="spec-note">Демонстрационный товар: цена и история продаж вымышлены.</p>{% endif %}
+  </section>
+</article>
+
+{% if display.points %}
+<section class="product-takeaway signal-{{ display.signal.state }}" aria-labelledby="takeaway-title">
+  <div class="takeaway-heading"><span class="takeaway-icon" aria-hidden="true">{{ display.signal.symbol }}</span><h2 id="takeaway-title">{{ display.points_heading }}</h2>{% if demo_mode %}<span class="demo-pill">Демо</span>{% endif %}</div>
+  <ul>{% for point in display.points %}<li><span class="point-symbol{% if point.symbol == '+' %} is-positive{% endif %}" aria-hidden="true">{{ point.symbol }}</span><span>{{ point.text }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if demo_mode %}{% include 'market/includes/purchase_story.html' %}{% endif %}
+{% if product.brief %}{% include 'market/includes/product_brief.html' %}{% else %}<details class="card disclosure"><summary>Подробнее о товаре</summary><div class="disclosure-body"><p>{{ product.description|linebreaksbr }}</p></div></details>{% endif %}
+
+{% if not demo_mode %}
+{% if observations or is_owner %}
+<details class="card disclosure">
+  <summary>Цена и спрос <span class="muted small">{% if insight.trend != None %}{{ insight.demand }}{% else %}Нужны данные{% endif %}</span></summary>
+  <div class="disclosure-body">
+    {% if insight.forecast_price != None %}<div class="forecast-result"><span class="muted small">Оценка цены через месяц</span><strong>≈ {{ insight.forecast_price|floatformat:'0g' }} ₸</strong><span class="help">Продолжение тренда, не гарантия цены.</span></div>{% endif %}
+    <dl class="simple-facts"><div><dt>Спрос</dt><dd>{{ insight.demand }}</dd></div><div><dt>В наличии</dt><dd>{% if product.stock != None %}{{ product.stock }} {{ product.unit }}{% else %}Не указано{% endif %}</dd></div></dl>
+    {% if observations %}<div class="chart-scroll"><svg id="price-chart" class="demand-chart" viewBox="0 0 960 280" role="img" aria-label="История цены по датам"></svg></div>
+    <details class="inline-details"><summary>Данные и Excel</summary><div class="table-wrap"><table class="mobile-table"><thead><tr><th>Дата</th><th>Цена, ₸</th><th>Продано</th></tr></thead><tbody>{% for row in observations %}<tr><td data-label="Дата">{{ row.date|date:'d.m.Y' }}</td><td data-label="Цена, ₸">{{ row.price }}</td><td data-label="Продано">{{ row.sold }}</td></tr>{% endfor %}</tbody></table></div><a class="btn btn-secondary" href="{% url 'market:product_excel' product.pk %}">Скачать Excel</a></details>
+    {% else %}<p class="muted">Добавьте продажи, чтобы увидеть прогноз.</p>{% endif %}
+    {% if is_owner %}<a class="text-link touch-link" href="{% url 'market:observation' product.pk %}">Добавить один день вручную</a>{% endif %}
+    <p class="help">Цвет показывает изменение средних дневных продаж между двумя периодами по 30 дней. От +10% — зелёный, до −10% — красный, между ними — жёлтый. Нужно хотя бы 7 заполненных дней в каждом периоде и свежая история.</p>
+    <p class="help">Расчёт по данным продавца. {% if insight.stale %}История отсутствует или устарела.{% else %}Обновлено {{ insight.as_of|date:'d.m.Y' }}.{% endif %}</p>
+  </div>
+</details>
+{% endif %}
+<details class="card disclosure" id="reviews"{% if review_form.is_bound %} open{% endif %}>
+  <summary>Отзывы <span class="muted small">{% if insight.rating %}★ {{ insight.rating }} · {{ insight.review_count }}{% else %}Пока нет{% endif %}</span></summary>
+  <div class="disclosure-body">
+    {% for review in reviews %}<article class="review"><div class="section-heading"><strong>{{ review.author.username }}</strong><span class="badge badge-neutral">★ {{ review.rating }}/5</span></div><p>{{ review.comment|linebreaksbr }}</p><time class="small muted">{{ review.updated_at|date:'d.m.Y' }}</time></article>{% empty %}<p class="muted">Здесь появятся мнения пользователей.</p>{% endfor %}
+    {% if is_owner %}<p class="help">Вы не можете оценить свой товар.</p>{% elif request.user.is_authenticated %}
+    <details class="inline-details"{% if review_form.is_bound %} open{% endif %}><summary>Оставить или изменить отзыв</summary><form method="post">{% csrf_token %}{% include 'market/includes/fields.html' with form=review_form %}<button class="btn btn-primary" type="submit">Сохранить отзыв</button></form></details>
+    {% else %}<a class="btn btn-secondary" href="{% url 'market:login' %}?next={{ request.path|urlencode }}">Войти и оставить отзыв</a>{% endif %}
+    <p class="help">Мнения пользователей. Покупка не проверена.</p>
+  </div>
+</details>
+{% endif %}
 {{ insight.chart|json_script:'product-chart-data' }}
-{% endblock %}{% block scripts %}<script src="{% static 'market/product.js' %}" defer></script>{% endblock %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'market/product.js' %}" defer></script>{% endblock %}

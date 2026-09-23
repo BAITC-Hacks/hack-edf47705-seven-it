@@ -1,2 +1,10 @@
 {% extends 'forecast/base.html' %}{% block title %}Мои товары — Foresell{% endblock %}{% block breadcrumb %}Мои товары{% endblock %}
-{% block content %}<div class="report-head"><div><span class="eyebrow">КАБИНЕТ ПРОДАВЦА</span><h1>Мои товары</h1><p class="section-description">Обновляйте цены, остатки и историю продаж, чтобы прогноз был полезнее.</p></div><a class="btn btn-primary" href="{% url 'market:product_create' %}">+ Добавить товар</a></div><div class="card table-wrap"><table><thead><tr><th>Товар</th><th>Цена, ₸</th><th>Остаток</th><th>Публикация</th><th>Действия</th></tr></thead><tbody>{% for product in products %}<tr><td><a href="{% url 'market:product' product.pk %}">{{ product.title }}</a></td><td>{{ product.price }}</td><td>{{ product.stock|default_if_none:'—' }}</td><td>{{ product.is_published|yesno:'Опубликован,Скрыт' }}</td><td><div class="inline-actions"><a href="{% url 'market:product_edit' product.pk %}">Изменить</a><a href="{% url 'market:observation' product.pk %}">Добавить продажи</a></div></td></tr>{% empty %}<tr><td colspan="5">Добавьте первый товар. Для прогноза понадобится его история цен и продаж.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% block content %}
+<header class="page-heading"><h1>Мои товары</h1><a class="btn btn-primary" href="{% url 'market:product_create' %}">+ Добавить</a></header>
+<div class="seller-list">{% for product in products %}
+  <article class="card seller-item"><div class="section-heading"><h2><a href="{% url 'market:product' product.pk %}">{{ product.title }}</a></h2><span class="badge {% if product.is_published %}badge-good{% else %}badge-neutral{% endif %}">{{ product.is_published|yesno:'В каталоге,Скрыт' }}</span></div>
+    <p class="seller-price">{% if product.price != None %}{{ product.price|floatformat:0 }} ₸{% else %}Цена не указана{% endif %}{% if product.stock != None %}<span class="muted small"> · В наличии: {{ product.stock }}</span>{% endif %}</p>
+    <div class="inline-actions"><a class="btn btn-secondary" href="{% url 'market:product_edit' product.pk %}">Изменить</a><a class="touch-link" href="{% url 'market:history_import' product.pk %}">Добавить продажи</a></div>
+  </article>
+{% empty %}<div class="card empty-state"><h2>Добавьте первый товар</h2><p>Он появится в каталоге после сохранения.</p></div>{% endfor %}</div>
+{% endblock %}

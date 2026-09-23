@@ -123,6 +123,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [('catalog-photos', BASE_DIR / 'photo' / 'catalog')]
+
+# The hackathon catalogue always opens with clearly labelled demo scenarios.
+# Set False when switching this installation to actual seller histories.
+MARKET_DEMO_MODE = True
 
 
 # Email

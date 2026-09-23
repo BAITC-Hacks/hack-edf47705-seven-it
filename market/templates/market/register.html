@@ -1,0 +1,35 @@
+{% extends 'market/auth_base.html' %}
+{% block title %}Регистрация — Foresell{% endblock %}
+{% block auth_content %}
+<section class="auth-card auth-card-register" aria-labelledby="auth-title">
+  <header class="auth-card-heading">
+    <h1 id="auth-title">Регистрация</h1>
+    <p>Ваши покупки, продажи и финансы — рядом</p>
+  </header>
+  <form method="post" class="auth-form" data-busy="Создаём аккаунт…">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="auth-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <fieldset class="auth-roles{% if form.role.errors %} has-error{% endif %}"{% if form.role.errors %} aria-describedby="{{ form.role.auto_id }}_error"{% endif %}>
+      <legend>{{ form.role.label }}</legend>
+      <div class="auth-role-grid">
+        {% for option in form.role %}
+        <label class="auth-role-option">
+          {{ option.tag }}
+          <span class="auth-role-card">
+            <svg class="icon" aria-hidden="true"><use href="{% if option.data.value == 'seller' %}#auth-shop{% else %}#auth-bag{% endif %}"/></svg>
+            <strong>{{ option.choice_label }}</strong>
+            <span>{% if option.data.value == 'seller' %}Продаю и изучаю спрос{% else %}Выбираю и сравниваю{% endif %}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.role.errors %}<div class="auth-field-errors" role="alert">{{ form.role.errors }}</div>{% endif %}
+    </fieldset>
+    {% include 'market/includes/auth_field.html' with field=form.username icon='user' %}
+    {% include 'market/includes/auth_field.html' with field=form.password1 icon='lock' password=True %}
+    {% include 'market/includes/auth_field.html' with field=form.password2 icon='lock' password=True %}
+    <button class="auth-submit" type="submit">Создать аккаунт</button>
+  </form>
+  <p class="auth-switch">Уже есть аккаунт? <a href="{% url 'market:login' %}">Войти</a></p>
+</section>
+{% endblock %}
